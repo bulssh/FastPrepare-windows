@@ -1,0 +1,72 @@
+﻿@{
+    RootModule        = 'FastPrepare.Core.psm1'
+    ModuleVersion     = '0.1.0'
+    GUID              = '03746fcd-ad31-42e4-90d4-ce0ea5df98cc'
+    Author            = 'FastPrepare'
+    Description       = 'Règles pures de préparation de poste : aucun accès au système ni à WPF.'
+    PowerShellVersion = '5.1'
+    FunctionsToExport = @(
+        'Test-DefaultComputerName',
+        'Resolve-LinkInstaller',
+        'Format-LinkInstallerCommand',
+        'New-NetworkDriveRequest',
+        'Get-NetworkDriveError',
+        'Get-NetworkDriveLabelKeyName',
+        'Format-NetworkDriveSummary',
+        'New-IpPrinterRequest',
+        'Get-IpPrinterError',
+        'Get-IpPrinterPortName',
+        'Get-InfPrinterModel',
+        'Format-IpPrinterSummary',
+        'Get-DomainJoinError',
+        'Split-DomainAccount',
+        'Test-SameDomain',
+        'New-CompanyProfile',
+        'ConvertTo-CompanyProfile',
+        'Get-CompanyProfileError',
+        'Get-CompanyProfileFileName',
+        'Get-WizardPage',
+        'Get-WizardNeighbor',
+        'Get-WizardNextLabel',
+        'Get-UninstallMsiProductCode',
+        'Get-UninstallExecutable',
+        'Get-UninstallProbeTarget',
+        'Resolve-UninstallStrategy',
+        'Get-UninstallOrder',
+        'Get-ProtectedAccountReason',
+        'Test-ProtectedAccount',
+        'Split-LocalAccount',
+        'Get-OfficeEdition',
+        'Test-OfficeEditionHasNoTeamsVariant',
+        'Get-OfficeProductId',
+        'Get-ExcludedOfficeApp',
+        'New-OdtInstallXml',
+        'New-OdtRemoveXml',
+        'Resolve-UtilityKey',
+        'Format-InventoryText',
+        'Format-InventoryExport',
+        'ConvertTo-SafeFileName',
+        'New-Selection',
+        'Test-Selection',
+        'Test-SafeChildPath',
+        'Test-SafeProfilePath',
+        'Split-CommandLine',
+        'Expand-ConfigPath',
+        'Test-VersionInRange',
+        'Select-DotNetRequirement',
+        'New-LocalAccountRequest',
+        'Get-LocalAccountOptionError',
+        'Get-LocalAccountNameError',
+        'Get-LocalAccountPasswordError',
+        'Get-LocalAccountGroupSid',
+        'Format-LocalAccountSummary',
+        'Clear-SelectionSecret',
+        'ConvertTo-SoftwareEntry',
+        'Get-SoftwareEntryError',
+        'New-SoftwareId',
+        'Format-SoftwareInstallCommand'
+    )
+    CmdletsToExport   = @()
+    VariablesToExport = @()
+    AliasesToExport   = @()
+}

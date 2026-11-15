@@ -1,0 +1,15 @@
+# Journaux et inventaires d'exécution (N/S, MAC, noms de comptes)
+logs/
+*.log
+
+# Paquets hors ligne (winget .msixbundle), trop volumineux pour Git
+packages/
+
+# Fichiers produits par l'outillage
+tools/out/
+
+# Documents (cahier des charges et autres PDF) : non versionnés
+*.pdf
+# Copies de secours et fichiers temporaires du catalogue des logiciels (onglet Réglages)
+software.json.bak
+software.json.tmp

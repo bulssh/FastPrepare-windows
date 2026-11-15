@@ -1,0 +1,27 @@
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource Section}">
+  <StackPanel>
+    <TextBlock Style="{StaticResource H2}" Text="Jonction au domaine"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="170"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Domaine" VerticalAlignment="Center"/>
+      <TextBox Name="TxtDomainName" Grid.Row="0" Grid.Column="1" Height="28" Margin="0,2" Padding="6,0" VerticalContentAlignment="Center" MaxLength="255"/>
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Compte" VerticalAlignment="Center"/>
+      <TextBox Name="TxtDomainAccount" Grid.Row="1" Grid.Column="1" Height="28" Margin="0,2" Padding="6,0" VerticalContentAlignment="Center" MaxLength="256"/>
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="Mot de passe" VerticalAlignment="Center"/>
+      <PasswordBox Name="PwdDomain" Grid.Row="2" Grid.Column="1" Height="28" Margin="0,2" Padding="6,0" VerticalContentAlignment="Center" MaxLength="256"/>
+    </Grid>
+    <Button Name="BtnDomainTest" Content="Tester" Height="32" Width="170" HorizontalAlignment="Left" Margin="0,10,0,0" Style="{StaticResource Secondary}"/>
+    <StackPanel Name="PnlDomainTest" Margin="0,6,0,0"/>
+    <TextBlock Name="TxtDomainHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+  </StackPanel>
+</Border>

@@ -1,0 +1,29 @@
+name: Verifications
+
+on:
+  push:
+    branches: [main, livraison]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verifier:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Modules de developpement
+        shell: powershell
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -Scope CurrentUser -MinimumVersion 5.5 -Force -SkipPublisherCheck
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+
+      - name: Analyse statique
+        shell: powershell
+        run: .\tools\Invoke-Lint.ps1
+
+      - name: Tests (Windows PowerShell 5.1)
+        shell: powershell
+        run: .\tools\Invoke-TestsCi.ps1

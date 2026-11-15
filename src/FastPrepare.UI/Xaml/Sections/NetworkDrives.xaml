@@ -1,0 +1,34 @@
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Style="{StaticResource Section}">
+  <StackPanel>
+    <TextBlock Style="{StaticResource H2}" Text="Lecteurs réseau"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="64"/>
+        <ColumnDefinition Width="8"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Sub}" Text="Lettre"/>
+      <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource Sub}" Text="Chemin réseau (\\serveur\partage)"/>
+      <ComboBox Name="CmbDriveLetter" Grid.Row="1" Grid.Column="0" Height="28" VerticalContentAlignment="Center"/>
+      <TextBox Name="TxtDrivePath" Grid.Row="1" Grid.Column="2" Height="28" Padding="6,0" VerticalContentAlignment="Center" MaxLength="260"/>
+      <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource Sub}" Margin="0,8,0,4" Text="Libellé affiché dans l'Explorateur (facultatif)"/>
+      <TextBox Name="TxtDriveLabel" Grid.Row="3" Grid.Column="2" Height="28" Padding="6,0" VerticalContentAlignment="Center" MaxLength="32"/>
+    </Grid>
+    <Button Name="BtnDriveAdd" Content="Ajouter à la liste" Height="32" Width="170" HorizontalAlignment="Left" Margin="0,10,0,0" Style="{StaticResource Secondary}"/>
+    <TextBlock Name="TxtDriveHint" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,8,0,8"/>
+    <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="4">
+      <StackPanel>
+        <StackPanel Name="PnlDrives"/>
+        <TextBlock Name="TxtDrivesNone" Style="{StaticResource Hint}" Margin="10,8" Text="Aucun lecteur réseau à connecter."/>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</Border>

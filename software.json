@@ -1,0 +1,60 @@
+{
+  "CatalogVersion": 1,
+  "Software": [
+    {
+      "Id": "adobe-reader",
+      "Label": "Adobe Acrobat Reader (64 bits)",
+      "DefaultChecked": true,
+      "Install": {
+        "Type": "winget",
+        "Id": "Adobe.Acrobat.Reader.64-bit",
+        "Source": "winget",
+        "Override": "-sfx_nu /sAll /rs /msi"
+      }
+    },
+    {
+      "Id": "google-chrome",
+      "Label": "Google Chrome",
+      "DefaultChecked": true,
+      "Install": {
+        "Type": "winget",
+        "Id": "Google.Chrome",
+        "Source": "winget",
+        "Override": ""
+      }
+    },
+    {
+      "Id": "mozilla-firefox",
+      "Label": "Mozilla Firefox (français)",
+      "DefaultChecked": true,
+      "Install": {
+        "Type": "winget",
+        "Id": "Mozilla.Firefox.fr",
+        "Source": "winget",
+        "Override": ""
+      }
+    },
+    {
+      "Id": "7-zip",
+      "Label": "7-Zip",
+      "DefaultChecked": true,
+      "Install": {
+        "Type": "winget",
+        "Id": "7zip.7zip",
+        "Source": "winget",
+        "Override": ""
+      }
+    },
+    {
+      "Id": "claude",
+      "Label": "Claude (session ouverte)",
+      "DefaultChecked": false,
+      "Install": {
+        "Type": "winget",
+        "Id": "Anthropic.Claude",
+        "Source": "winget",
+        "Override": ""
+      }
+    }
+  ]
+}

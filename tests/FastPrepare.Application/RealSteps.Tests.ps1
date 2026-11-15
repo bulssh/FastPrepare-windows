@@ -1,0 +1,71 @@
+﻿<#
+    Étapes disponibles en mode réel (itération 3), de bout en bout : plan construit par les
+    étapes, moteur en mode réel, adaptateurs système remplacés par des simulacres.
+#>
+BeforeAll {
+    . (Join-Path $PSScriptRoot '..\TestHelpers.ps1')
+    Import-FastPrepareModule Core, Infrastructure, Application
+    $m = @{ ModuleName = 'FastPrepare.Application' }
+}
+
+Describe 'Mode réel — étapes de l''itération 3' {
+    BeforeEach {
+        Mock @m Assert-WingetAvailable { }
+        Mock @m Install-WingetPackage { [pscustomobject]@{ RebootRequired = $false; AlreadyInstalled = $false } }
+        Mock @m Disable-AdapterIpv6 { [pscustomobject]@{ Changed = $true } }
+        Mock @m Set-PowerTimeout { }
+        # Windows Update est disponible en mode réel depuis l'itération 11 : sans ce simulacre, le
+        # deuxième test lançait une vraie recherche de mises à jour sur le poste qui exécute les tests.
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 0; Installed = 0; Failed = @(); RebootRequired = $false; Remaining = 0 } }
+        Mock @m Export-MachineInventory { [pscustomobject]@{ Path = 'C:\x.txt'; Error = $null } }
+        $context = New-TestContext -Folder $TestDrive -Mode Real
+    }
+
+    It 'alimentation, IPv6, logiciel : exécutés avec les bons paramètres' {
+        $selection = New-Selection
+        $selection.SystemSettings.Power = $true
+        $selection.SystemSettings.Ipv6Adapters = @((New-TestSnapshot).Adapters)
+        $selection.ExtraSoftware.Ids = @('adobe-reader')
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        $results = Invoke-ExecutionPlan -Plan $plan -Context $context
+
+        @($results | Where-Object Outcome -NE 'Succeeded').Count | Should -Be 0
+        Should -Invoke @m Assert-WingetAvailable -Times 1 -ParameterFilter { $OfflineBundle -eq 'C:\Cle\packages\winget.msixbundle' }
+        Should -Invoke @m Install-WingetPackage -Times 1 -ParameterFilter { $Id -eq 'Adobe.Acrobat.Reader.64-bit' -and $Override -eq '-sfx_nu /sAll /rs /msi' }
+        Should -Invoke @m Disable-AdapterIpv6 -Times 1 -ParameterFilter { $Name -eq 'Ethernet' }
+        Should -Invoke @m Set-PowerTimeout -Times 1 -ParameterFilter { $MonitorMinutes -eq 5 -and $StandbyMinutes -eq 15 -and $IncludeBattery }
+    }
+
+    It 'étapes pas encore disponibles en réel : ignorées et signalées, rien d''exécuté' {
+        # Indépendant de l'avancement : on compare au nombre d'actions dont l'étape n'a pas d'Invoke.
+        $selection = New-Selection
+        $selection.Updates.WindowsUpdate = $true
+        $selection.SystemSettings.Power = $true
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        $unavailable = @($plan.Actions | Where-Object { -not $_.RealModeAvailable }).Count
+        $results = Invoke-ExecutionPlan -Plan $plan -Context $context
+        @($results | Where-Object Outcome -EQ 'Skipped').Count | Should -Be $unavailable
+        if ($unavailable -gt 0) {
+            Format-ExecutionPlanSummary -Plan $plan | Should -Match ('{0} non disponible\(s\) en mode réel' -f $unavailable)
+            ((Receive-RunLogEntry -Log $context.Log).Line -join "`n") | Should -Match ('{0} ignorée\(s\)' -f $unavailable)
+        }
+    }
+
+    It 'un échec (winget) n''empêche pas les actions suivantes' {
+        Mock @m Install-WingetPackage { throw '« winget.exe » : code de sortie 1603' }
+        $selection = New-Selection
+        $selection.ExtraSoftware.Ids = @('adobe-reader')
+        $selection.SystemSettings.Power = $true
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        $results = Invoke-ExecutionPlan -Plan $plan -Context $context
+        @($results).Outcome | Should -Be @('Failed', 'Succeeded')
+        Should -Invoke @m Set-PowerTimeout -Times 1
+    }
+
+    It 'inventaire : nouvel essai d''export si celui du démarrage a échoué' {
+        $plan = New-ExecutionPlan -Selection (New-Selection) -Snapshot (New-TestSnapshot -InventoryExportFailed) -Context $context
+        $results = Invoke-ExecutionPlan -Plan $plan -Context $context
+        $results[0].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Export-MachineInventory -Times 1 -ParameterFilter { $Snapshot.Identity.Serial -eq 'SN0000TEST' }
+    }
+}
