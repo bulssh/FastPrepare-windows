@@ -13,3 +13,10 @@ tools/out/
 # Copies de secours et fichiers temporaires du catalogue des logiciels (onglet Réglages)
 software.json.bak
 software.json.tmp
+
+# Profils entreprise (liens RMM et antivirus propres à un client) : jamais versionnés
+profils/
+
+# Sorties locales : clé de test construite, compte rendu de la vérification en VM
+out-cle/
+resultat-vm.txt

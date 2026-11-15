@@ -16,6 +16,8 @@
 | `tools\Invoke-Tests.ps1 [-PesterPath <chemin>] [-Coverage]` | Tests Pester (`tests\`) |
 | `tools\Invoke-Lint.ps1` | PSScriptAnalyzer + contrôle des encodages ; échoue au premier avertissement |
 | `tools\Build-Usb.ps1 -Destination <dossier>` | Lint + tests, puis copie du seul nécessaire sur la clé |
+| `tools\Invoke-TestsCi.ps1` | Tests, un processus par fichier avec délai maximal (utilisé par l'intégration continue) |
+| `tools\Invoke-VmCheck.ps1` | Sur un poste de test : relevé réel, simulation complète, construction de la fenêtre |
 | `Lancer.cmd -Simulation` | Lancer l'outil sans rien modifier sur le poste |
 
 Avant chaque commit : `Invoke-Lint.ps1` et `Invoke-Tests.ps1` verts.
