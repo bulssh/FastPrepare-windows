@@ -98,6 +98,12 @@ Describe 'Get-WingetPackageInfo' {
     It 'sortie anglaise' {
         (ConvertFrom-WingetShowDetail -Output "Found Adobe Acrobat Reader (64-bit) [Adobe.Acrobat.Reader.64-bit]`nVersion: 25.001" -Id 'Adobe.Acrobat.Reader.64-bit').Name | Should -Be 'Adobe Acrobat Reader (64-bit)'
     }
+    It 'animation de winget avant la première ligne (retours chariot seuls)' {
+        $output = "   - `r   \ `r   | `r                    `rFound Notepad++ [Notepad++.Notepad++]`r`nVersion: 8.9.9.1"
+        $info = ConvertFrom-WingetShowDetail -Output $output -Id 'Notepad++.Notepad++'
+        $info.Name | Should -Be 'Notepad++'
+        $info.Version | Should -Be '8.9.9.1'
+    }
     It 'paquet introuvable : message clair' {
         Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = -1978335212; Output = 'Aucun package ne correspond' } }
         { Get-WingetPackageInfo -Id 'inconnu.paquet' -Source 'winget' } | Should -Throw '*introuvable dans la source*'

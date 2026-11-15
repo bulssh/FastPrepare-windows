@@ -166,12 +166,20 @@ function ConvertFrom-WingetShowDetail {
     <#
         Nom et version dans la sortie de « winget show » : première ligne « Trouvé <nom> [<id>] »
         (« Found » en anglais) et ligne « Version: … ». Tolérant à la langue de winget.
+        winget écrit d'abord une animation (« - », « \ », « | », « / ») que seul un retour
+        chariot sépare de la suite : la sortie est découpée sur les retours chariot comme sur
+        les sauts de ligne, et le premier mot doit commencer par une lettre.
     #>
     [CmdletBinding()]
     param([AllowEmptyString()][string]$Output, [Parameter(Mandatory)][string]$Id)
-    $nameMatch = [regex]::Match([string]$Output, ('(?m)^\s*\S+\s+(.+?)\s+\[{0}\]\s*$' -f [regex]::Escape($Id)))
+    $pattern = '^\s*\p{{L}}\S*\s+(.+?)\s+\[{0}\]\s*$' -f [regex]::Escape($Id)
+    $name = ''
+    foreach ($segment in ([string]$Output -split '[\r\n\x08]+')) {
+        $nameMatch = [regex]::Match($segment, $pattern)
+        if ($nameMatch.Success) { $name = $nameMatch.Groups[1].Value; break }
+    }
     return [pscustomobject]@{
-        Name    = $(if ($nameMatch.Success) { $nameMatch.Groups[1].Value } else { '' })
+        Name    = $name
         Version = (ConvertFrom-WingetShowOutput -Output $Output)
     }
 }
