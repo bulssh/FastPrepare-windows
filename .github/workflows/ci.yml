@@ -27,3 +27,7 @@ jobs:
       - name: Tests (Windows PowerShell 5.1)
         shell: powershell
         run: .\tools\Invoke-TestsCi.ps1
+
+      - name: Verification sans fenetre (releve reel, simulation, construction de la fenetre)
+        shell: cmd
+        run: powershell -NoProfile -STA -ExecutionPolicy Bypass -File tools\Invoke-VmCheck.ps1
