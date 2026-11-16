@@ -15,6 +15,7 @@ Describe 'Mode réel — désinstallations' {
         Mock @m Remove-LocalAccountWithProfile { [pscustomobject]@{ AccountRemoved = $true; ProfileRemoved = $true; LeftoverFolder = $null } }
         Mock @m Initialize-OdtFolder { 'C:\ODT\setup.exe' }
         Mock @m Invoke-Odt { [pscustomobject]@{ RebootRequired = $false; ConfigurationPath = 'C:\ODT\c.xml' } }
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $true; Msi = $true } }
         Mock @m Remove-AppxEverywhere { [pscustomobject]@{ Installed = @('x'); Provisioned = @() } }
         Mock @m Get-MsiProductCodeByName { '{11111111-2222-3333-4444-555555555555}' }
         Mock @m Uninstall-MsiProduct { [pscustomobject]@{ RebootRequired = $false } }
@@ -48,6 +49,28 @@ Describe 'Mode réel — désinstallations' {
         Should -Invoke @m Remove-DefaultProfileOneDriveRun -Times 1 -ParameterFilter { $DefaultProfilePath -eq 'C:\Users\Default' }
         Should -Invoke @m Invoke-UninstallCommand -Times 1 -ParameterFilter { $Command -like 'msiexec*' -and -not $Interactive }
         Should -Invoke @m Invoke-UninstallCommand -Times 1 -ParameterFilter { $Command -like 'C:\A\setup.exe*' -and $Interactive }
+    }
+
+    It 'Office absent du poste : l''outil de déploiement n''est ni téléchargé ni lancé, l''action réussit' {
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $false; Msi = $false } }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeClickToRun = $true
+        $selection.MicrosoftApps.OfficeMsi = $true
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        $results = Invoke-ExecutionPlan -Plan $plan -Context $context
+        @($results | Where-Object Outcome -NE 'Succeeded') | Should -BeNullOrEmpty
+        Should -Invoke @m Initialize-OdtFolder -Times 0
+        Should -Invoke @m Invoke-Odt -Times 0
+        ([System.IO.File]::ReadAllText($context.Log.FilePath)) | Should -Match 'Office : déjà absent'
+    }
+
+    It 'seul Office MSI présent, seule la suppression Click-to-Run demandée : rien à faire' {
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $false; Msi = $true } }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeClickToRun = $true
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        [void](Invoke-ExecutionPlan -Plan $plan -Context $context)
+        Should -Invoke @m Invoke-Odt -Times 0
     }
 
     It 'compte devenu protégé au moment d''exécuter (session ouverte entre-temps) : refus' {

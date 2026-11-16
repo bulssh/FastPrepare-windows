@@ -15,7 +15,7 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
         $label = 'Office : ODT /configure, suppression {0}' -f ($parts -join ' + ')
         if ($ms.OutlookClassic) { $label += ' · Outlook classique retiré avec la suite' }
         $xml = New-OdtRemoveXml -RemoveClickToRun:([bool]$ms.OfficeClickToRun) -RemoveMsi:([bool]$ms.OfficeMsi)
-        New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{ Kind = 'OdtRemove'; Xml = $xml }
+        New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{ Kind = 'OdtRemove'; Xml = $xml; ClickToRun = [bool]$ms.OfficeClickToRun; Msi = [bool]$ms.OfficeMsi }
     } elseif ($ms.OutlookClassic) {
         New-PlanWarning -Message 'Outlook classique coché sans « Office Click-to-Run » ni « Office MSI » : il n''est retiré qu''avec la suite Office, aucune action prévue (question ouverte QO1).'
     }
@@ -43,6 +43,13 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
     $p = $Action.Parameters
     switch ($p.Kind) {
         'OdtRemove' {
+            # Rien de ce qui est demandé n'est installé : l'outil de déploiement n'est ni téléchargé
+            # ni lancé (sur un poste sans Office, sa suppression échoue avec le code -1).
+            $present = Get-InstalledOfficeKind
+            if (-not (($p.ClickToRun -and $present.ClickToRun) -or ($p.Msi -and $present.Msi))) {
+                Write-RunLog -Log $log -Message 'Office : déjà absent (aucune installation Click-to-Run ni MSI à retirer)'
+                return
+            }
             $setup = Initialize-OdtFolder -Folder $Context.Paths.OdtFolder -SetupUrl $Context.Config.Office.OdtSetupUrl -Log $log
             $result = Invoke-Odt -SetupPath $setup -Xml $p.Xml -Name 'suppression' -Log $log
             [pscustomobject]@{ RebootRequired = $result.RebootRequired }

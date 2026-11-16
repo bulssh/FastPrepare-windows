@@ -81,6 +81,7 @@
         'Get-DotNetDesktopRuntimeVersion',
         'Find-InstalledExecutable',
         'Get-OfficeClickToRunProduct',
+        'Get-InstalledOfficeKind',
         'Invoke-WindowsUpdatePass',
         'Publish-RunProgress',
         'Copy-RunLogToDrive',

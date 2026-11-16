@@ -1043,6 +1043,24 @@ Première fonctionnalité ajoutée après le cahier ; elle suit les recettes §1
 
 **État : livrée le 2026-11-16.** Lint et tests verts ; vérifiée à l'écran dans la machine virtuelle de test (disque de 48 Go, 195 000 fichiers : analyse en 12 à 20 s, les trois vues liées, arrêt, dossier saisi, ouverture dans l'Explorateur). L'Explorateur, non élevé, refuse les dossiers protégés de Windows : c'est son comportement normal.
 
+### Recette en mode réel du 16 novembre 2026
+
+Première exécution réelle complète, sur un poste de test Windows 11 et un domaine Active Directory de test, à partir d'un instantané restauré ensuite. 21 actions, **20 réussies, 1 en échec** ; aucun redémarrage automatique ; aucun mot de passe dans le journal.
+
+| Fonction | Résultat constaté sur le poste |
+|---|---|
+| Nouvel Outlook, OneNote, Teams, OneDrive | « déjà absent » sur ce poste, sans erreur |
+| Logiciels du catalogue (winget) | Adobe Acrobat Reader, Google Chrome, Mozilla Firefox, 7-Zip installés |
+| IPv6 | désactivé sur les deux cartes |
+| Alimentation | écran 5 min, veille 15 min, sur secteur et sur batterie |
+| Sessions locales | deux sessions créées : groupes, nom complet, description, compte désactivé conformes |
+| Lecteur réseau | valeurs écrites dans la ruche de l'utilisateur de la session ouverte ; aucune tâche planifiée laissée |
+| Imprimante IP | pilote, port `IP_<adresse>` et imprimante créés |
+| Jonction au domaine | bouton Tester : domaine trouvé, compte accepté ; jonction en dernière action ; après le redémarrage manuel, poste membre du domaine, canal sécurisé établi, objet ordinateur dans le conteneur par défaut |
+
+- **Défaut corrigé** — suppression d'Office sur un poste sans Office : l'outil de déploiement d'Office échoue (code de sortie -1) au lieu de répondre « rien à retirer ». `Get-InstalledOfficeKind` (`Infrastructure/System/Odt.ps1`) détecte Office Click-to-Run et Office MSI ; l'étape `remove-microsoft-apps` n'appelle l'outil de déploiement que si ce qui est demandé est installé, sinon elle note « déjà absent ». Revérifié en mode réel sur le poste restauré.
+- **Non couvert par cette recette** : Windows Update, installation et suppression d'un Office présent, utilitaires constructeur (pas de matériel de marque), agent RMM et antivirus (pas de lien de console), désinstallation de logiciels et suppression de sessions (rien à retirer sur ce poste), affichage du lecteur réseau à l'ouverture de session suivante, compte sans droit de jonction.
+
 ### Vérification des itérations 13 à 18
 
 - `Start-MainWindow` est scindée : `New-MainWindow` construit la fenêtre sans l'afficher. `tests/FastPrepare.UI/UiBuild.Tests.ps1` (Windows uniquement) construit ainsi toute l'interface, affiche chaque page et fait faire l'aller-retour à un profil.
