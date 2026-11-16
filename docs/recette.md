@@ -279,6 +279,19 @@ La fenêtre n'a pas pu être affichée pendant le développement : cette recette
 - [ ] `tools\Build-Usb.ps1` sur une clé qui contient des profils : ils sont conservés.
 - [ ] Pendant une exécution : sélecteur et boutons de profil grisés.
 
+## Itération 19 — analyse de disque (lecture seule, tout mode)
+
+- [ ] Menu latéral : « Analyse de disque » sous « Catalogue logiciels » ; ni Précédent ni Suivant sur cette page ; pied « Outil en lecture seule ».
+- [ ] Le disque `C:\` est proposé avec son espace libre ; « Analyser » : avancement (fichiers, taille, dossier en cours), la fenêtre reste réactive, puis bilan (taille, fichiers, dossiers, durée, dossiers illisibles).
+- [ ] Arborescence : dossiers du plus gros au plus petit, part du dossier parent, taille, nombre de fichiers ; la flèche ou un double-clic déplie et replie ; les petits fichiers sont regroupés (« 12 fichiers .dll »).
+- [ ] Types de fichiers : classés par volume, une couleur par type, identique sur la carte.
+- [ ] Carte : un clic sur une tuile la retrouve dans l'arborescence (dossiers dépliés, ligne sélectionnée, contour blanc) ; le survol affiche son chemin et sa taille ; la sélection d'un type entoure toutes ses tuiles.
+- [ ] « Arrêter » pendant l'analyse : arrêt en une ou deux secondes, « Analyse interrompue (résultat partiel) ».
+- [ ] Chemin d'un dossier saisi à la main : analysé ; chemin inexistant : message en rouge, rien d'autre ne change.
+- [ ] « Ouvrir dans l'Explorateur » : dossier ouvert, ou fichier sélectionné dans son dossier.
+- [ ] Fenêtre agrandie puis réduite : la carte se redessine à la nouvelle taille.
+- [ ] Pendant une exécution (Lancer) : la page reste utilisable ; après l'analyse, aucun fichier ni réglage du poste n'a changé.
+
 ## Recette complète avant passage en mode réel par défaut (DEC6)
 
 Dérouler, sur un poste de test réinitialisé de **chaque marque**, une exécution réelle **complète** (toutes les sections utiles cochées), puis :

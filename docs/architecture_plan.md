@@ -1031,6 +1031,18 @@ Première fonctionnalité ajoutée après le cahier ; elle suit les recettes §1
 
 **État : livrée le 2026-11-14** (branche `iteration-14`), mêmes vérifications et réserves que l'itération 13.
 
+### Itération 19 — Analyse de disque (page hors parcours)
+
+**Besoin** : voir ce qui occupe le disque d'un poste sans installer d'outil tiers. La page reprend le fonctionnement des analyseurs de disque classiques (arborescence triée par taille, liste des types de fichiers, carte des tailles en tuiles, les trois vues liées), réécrit avec les composants natifs et aux couleurs de l'outil. Aucun code ni binaire tiers n'est embarqué.
+
+- **Parcours** (`Core/Public/Wizard.ps1`) : nouveau genre de page `Tool` (outil en lecture seule, hors parcours, sa section occupe toute la page) et page `disque` ; `Test-WizardPageOnPath` distingue les pages du parcours Précédent / Suivant des pages à part (`Settings`, `Tool`).
+- **Règles** (`Core/Public/DiskUsage.ps1`) : `Format-ByteSize`, `Format-DiskUsagePercent`, `Get-DiskUsageExtensionLabel`, `Get-DiskUsageColorIndex` (une couleur pour chacun des 14 types les plus volumineux, une couleur commune ensuite), `Get-TreemapLayout` (découpage « squarified » d'un rectangle en tuiles proportionnelles).
+- **Système** (`Infrastructure/System/DiskUsage.ps1`) : `Get-FixedDrive`, `Read-DiskUsage` (parcours itératif, **lecture seule**, jonctions et liens non suivis, dossier illisible compté et ignoré, arrêt possible en cours de route) et `Show-PathInExplorer`. Un fichier d'au moins 1 Mo a son propre nœud ; les plus petits sont regroupés par extension dans leur dossier, ce qui borne la mémoire. Les tailles sont les tailles logiques des fichiers.
+- **Application** (`DiskUsage.ps1`) : `Get-DiskUsage` et `Start-DiskUsageScan` (arrière-plan, avancement partagé), `Get-DiskUsageChild` (enfants d'un dossier triés à la demande), `New-DiskUsageTreemap`, `Find-DiskUsageTreemapRect`, `Open-DiskUsageLocation`.
+- **Interface** (`Sections/DiskUsageSection.ps1`, `Xaml/Sections/DiskUsage.xaml`) : choix d'un disque ou d'un dossier saisi, Analyser / Arrêter, arborescence dépliable (200 éléments au plus par dossier), types de fichiers, carte dessinée en une image ; un clic sur la carte retrouve la tuile dans l'arborescence, la sélection d'un type entoure ses tuiles, « Ouvrir dans l'Explorateur ». La page ne contribue pas à la sélection et ne bloque jamais Lancer.
+
+**État : livrée le 2026-11-16.** Lint et tests verts ; vérifiée à l'écran dans la machine virtuelle de test (disque de 48 Go, 195 000 fichiers : analyse en 12 à 20 s, les trois vues liées, arrêt, dossier saisi, ouverture dans l'Explorateur). L'Explorateur, non élevé, refuse les dossiers protégés de Windows : c'est son comportement normal.
+
 ### Vérification des itérations 13 à 18
 
 - `Start-MainWindow` est scindée : `New-MainWindow` construit la fenêtre sans l'afficher. `tests/FastPrepare.UI/UiBuild.Tests.ps1` (Windows uniquement) construit ainsi toute l'interface, affiche chaque page et fait faire l'aller-retour à un profil.
@@ -1117,7 +1129,13 @@ C'est le critère de réussite de cette architecture : chaque évolution prévis
 2. Les données du réglage dans un fichier dédié à la racine de la clé, lu et écrit par un adaptateur de `Infrastructure/Config`, avec ses règles dans `Core` (modèle : le catalogue des logiciels). `config.json` reste écrit à la main et n'est jamais réécrit par l'outil (DEC17).
 3. Si d'autres sections affichent ce réglage : leur rappel `OnSettingsChanged`, et `Publish-SettingsChanged` après l'enregistrement.
 
-### 10.7 Ce qui demande une décision avant d'être codé
+### 10.7 Ajouter un outil en lecture seule hors parcours (page « Analyse de disque », it. 19)
+
+1. Une page de genre `Tool` dans `Get-WizardPage` : elle apparaît sous le catalogue dans le menu latéral et sa section occupe toute la hauteur.
+2. La section (`Register-UiSection -Page '<page>' -Column Left -Number 11x`) sans `GetSelection` ni `Validate` : un outil ne participe pas au plan d'exécution.
+3. Lecture du système dans `Infrastructure`, modèle dans `Application`, travail long en arrière-plan (`Start-BackgroundWork`) avec un état partagé pour l'avancement et l'arrêt.
+
+### 10.8 Ce qui demande une décision avant d'être codé
 
 Une règle qui change le **contrat** (format du journal, ordre d'exécution du cahier, comportement en cas d'échec, introduction d'un redémarrage) se décide d'abord dans ce document (§11) et dans le cahier des charges, puis se code.
 

@@ -4,17 +4,19 @@
 }
 
 Describe 'Get-WizardPage (parcours par étapes)' {
-    It 'cinq étapes de saisie, le récapitulatif, puis le catalogue hors parcours' {
+    It 'cinq étapes de saisie, le récapitulatif, puis le catalogue et l''analyse de disque hors parcours' {
         $pages = @(Get-WizardPage)
-        ($pages | ForEach-Object { $_.Id }) -join ',' | Should -Be 'poste,nettoyage,comptes,installations,systeme,recap,catalogue'
+        ($pages | ForEach-Object { $_.Id }) -join ',' | Should -Be 'poste,nettoyage,comptes,installations,systeme,recap,catalogue,disque'
         @($pages | Where-Object { $_.Kind -eq 'Step' }).Count | Should -Be 5
         @($pages | Where-Object { $_.Kind -eq 'Review' }).Count | Should -Be 1
     }
 
     It 'les pages du parcours sont numérotées de 1 à 6, le catalogue ne l''est pas' {
         $pages = @(Get-WizardPage)
-        ($pages | Where-Object { $_.Kind -ne 'Settings' } | ForEach-Object { $_.Number }) -join ',' | Should -Be '1,2,3,4,5,6'
+        ($pages | Where-Object { Test-WizardPageOnPath -Kind $_.Kind } | ForEach-Object { $_.Number }) -join ',' | Should -Be '1,2,3,4,5,6'
         ($pages | Where-Object { $_.Id -eq 'catalogue' }).Number | Should -Be 0
+        ($pages | Where-Object { $_.Id -eq 'disque' }).Number | Should -Be 0
+        ($pages | Where-Object { $_.Id -eq 'disque' }).Kind | Should -Be 'Tool'
     }
 
     It 'chaque page a un titre et un sous-titre' {
@@ -40,6 +42,8 @@ Describe 'Get-WizardNeighbor' {
         @{ From = 'recap'; Direction = 'Next' }
         @{ From = 'catalogue'; Direction = 'Next' }
         @{ From = 'catalogue'; Direction = 'Previous' }
+        @{ From = 'disque'; Direction = 'Next' }
+        @{ From = 'disque'; Direction = 'Previous' }
         @{ From = 'inconnue'; Direction = 'Next' }
     ) {
         Get-WizardNeighbor -PageId $From -Direction $Direction | Should -BeNullOrEmpty

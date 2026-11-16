@@ -37,7 +37,17 @@
         'Set-SoftwareCatalogEntry',
         'Remove-SoftwareCatalogEntry',
         'Test-SoftwareCatalogEntry',
-        'Start-SoftwareCatalogTest'
+        'Start-SoftwareCatalogTest',
+        'Get-DiskUsageDrive',
+        'New-DiskUsageProgress',
+        'Get-DiskUsage',
+        'Get-DiskUsageChild',
+        'Start-DiskUsageScan',
+        'Get-DiskUsageNodePath',
+        'Get-DiskUsageNodeLabel',
+        'New-DiskUsageTreemap',
+        'Find-DiskUsageTreemapRect',
+        'Open-DiskUsageLocation'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

@@ -61,7 +61,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
             <StackPanel Name="PnlNav"/>
-            <Border Height="1" Background="#E0E0E0" Margin="0,10,0,10"/>
+            <Border Height="1" Background="#E0E0E0" Margin="0,6,0,6"/>
             <StackPanel Name="PnlNavSettings"/>
           </StackPanel>
         </ScrollViewer>

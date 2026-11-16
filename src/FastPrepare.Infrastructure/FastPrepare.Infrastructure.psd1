@@ -83,7 +83,10 @@
         'Get-OfficeClickToRunProduct',
         'Invoke-WindowsUpdatePass',
         'Publish-RunProgress',
-        'Copy-RunLogToDrive'
+        'Copy-RunLogToDrive',
+        'Get-FixedDrive',
+        'Read-DiskUsage',
+        'Show-PathInExplorer'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

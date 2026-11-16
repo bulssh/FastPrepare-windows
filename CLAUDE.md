@@ -50,7 +50,8 @@ Quatre modules dans `src/` (couches vérifiées par les tests) : `FastPrepare.Co
 `FastPrepare.Infrastructure` (seul accès au système), `FastPrepare.Application` (étapes, plan,
 moteur), `FastPrepare.UI` (WPF : coquille `MainWindow`, une section par fragment XAML).
 Le parcours de l'interface est décrit dans `Core/Public/Wizard.ps1` : Poste, Nettoyage, Comptes et
-domaine, Installations, Système et réseau, Récapitulatif (seul bouton Lancer), Catalogue logiciels.
+domaine, Installations, Système et réseau, Récapitulatif (seul bouton Lancer), puis hors parcours :
+Catalogue logiciels et Analyse de disque (outil en lecture seule, itération 19).
 18 étapes d'exécution, ordre dans `Application/StepOrder.ps1`. Recettes pour ajouter une étape, une
 section, un logiciel : `docs/architecture_plan.md` §10.
 

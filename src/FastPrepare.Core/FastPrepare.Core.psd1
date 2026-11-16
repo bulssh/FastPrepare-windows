@@ -26,6 +26,7 @@
         'Get-CompanyProfileError',
         'Get-CompanyProfileFileName',
         'Get-WizardPage',
+        'Test-WizardPageOnPath',
         'Get-WizardNeighbor',
         'Get-WizardNextLabel',
         'Get-UninstallMsiProductCode',
@@ -64,7 +65,12 @@
         'ConvertTo-SoftwareEntry',
         'Get-SoftwareEntryError',
         'New-SoftwareId',
-        'Format-SoftwareInstallCommand'
+        'Format-SoftwareInstallCommand',
+        'Format-ByteSize',
+        'Format-DiskUsagePercent',
+        'Get-DiskUsageExtensionLabel',
+        'Get-DiskUsageColorIndex',
+        'Get-TreemapLayout'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

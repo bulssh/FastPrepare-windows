@@ -37,6 +37,32 @@
   <SolidColorBrush x:Key="LogWarningBrush" Color="#DCDCAA"/>
   <SolidColorBrush x:Key="LogSimulationBrush" Color="#569CD6"/>
 
+  <!--
+      Analyse de disque : fond de la carte des tailles, puis une couleur par type de fichier
+      (les 14 plus volumineux ; DiskMapOther pour les suivants, DiskMapEmpty pour un dossier vide).
+      Dégradé relatif à chaque tuile : léger relief, sans calcul.
+  -->
+  <SolidColorBrush x:Key="DiskMapBackgroundBrush" Color="#20242B"/>
+  <SolidColorBrush x:Key="DiskMapHighlightBrush" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="DiskBarBrush" Color="#7DB3E8"/>
+  <SolidColorBrush x:Key="DiskBarTrackBrush" Color="#EDF1F5"/>
+  <LinearGradientBrush x:Key="DiskMap0" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#6FA8F5" Offset="0"/><GradientStop Color="#2F6FD0" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap1" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F5A66F" Offset="0"/><GradientStop Color="#D06A2F" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap2" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7FD6A0" Offset="0"/><GradientStop Color="#2F9E5E" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap3" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#C89AF2" Offset="0"/><GradientStop Color="#8349C9" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap4" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F27F8D" Offset="0"/><GradientStop Color="#C93A4C" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap5" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#6FD4DE" Offset="0"/><GradientStop Color="#2494A3" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap6" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F2D36B" Offset="0"/><GradientStop Color="#C49A1C" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap7" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F29AD0" Offset="0"/><GradientStop Color="#C4489A" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap8" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#A9D46B" Offset="0"/><GradientStop Color="#6A9A22" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap9" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#8E9AF2" Offset="0"/><GradientStop Color="#4A55C4" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap10" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#D9B08C" Offset="0"/><GradientStop Color="#9C6A3E" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap11" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#6FE0C0" Offset="0"/><GradientStop Color="#1F9E7C" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap12" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F28F6B" Offset="0"/><GradientStop Color="#B8481F" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMap13" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B6C2CE" Offset="0"/><GradientStop Color="#6E7F90" Offset="1"/></LinearGradientBrush>
+  <LinearGradientBrush x:Key="DiskMapOther" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#8A929C" Offset="0"/><GradientStop Color="#565D66" Offset="1"/></LinearGradientBrush>
+  <SolidColorBrush x:Key="DiskMapEmpty" Color="#343A43"/>
+
   <!-- Styles -->
   <Style x:Key="Section" TargetType="Border">
     <Setter Property="Background" Value="White"/>
@@ -123,7 +149,7 @@
   </Style>
   <!-- Entrée du menu latéral (une par page) : RadioButton, une seule cochée à la fois. -->
   <Style x:Key="Nav" TargetType="RadioButton">
-    <Setter Property="Padding" Value="12,9"/>
+    <Setter Property="Padding" Value="12,7"/>
     <Setter Property="Margin" Value="0,0,0,2"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>

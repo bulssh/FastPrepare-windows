@@ -134,7 +134,7 @@ function Initialize-WizardPage {
                 param($source, $clickArgs)
                 Invoke-UiAction -Name 'changement de page' -Action { Show-WizardPage -Id ([string]$source.Tag) }
             })
-        $navPanel = if ($page.Kind -eq 'Settings') { $shell.PnlNavSettings } else { $shell.PnlNav }
+        $navPanel = if (Test-WizardPageOnPath -Kind $page.Kind) { $shell.PnlNav } else { $shell.PnlNavSettings }
         [void]$navPanel.Children.Add($nav)
 
         $root = $null
@@ -149,7 +149,9 @@ function Initialize-WizardPage {
                 else { $column.Width = [System.Windows.GridLength]::new($width) }
                 $grid.ColumnDefinitions.Add($column)
             }
-            $left = [System.Windows.Controls.StackPanel]::new()
+            # Page « outil » : sa section occupe toute la hauteur (pas d'empilement ni de défilement).
+            $fill = ($page.Kind -eq 'Tool')
+            $left = if ($fill) { [System.Windows.Controls.Grid]::new() } else { [System.Windows.Controls.StackPanel]::new() }
             $right = [System.Windows.Controls.StackPanel]::new()
             [System.Windows.Controls.Grid]::SetColumn($left, 0)
             [System.Windows.Controls.Grid]::SetColumn($right, 2)
@@ -157,7 +159,7 @@ function Initialize-WizardPage {
             [void]$grid.Children.Add($right)
 
             $root = [System.Windows.Controls.ScrollViewer]::new()
-            $root.VerticalScrollBarVisibility = [System.Windows.Controls.ScrollBarVisibility]::Auto
+            $root.VerticalScrollBarVisibility = if ($fill) { [System.Windows.Controls.ScrollBarVisibility]::Disabled } else { [System.Windows.Controls.ScrollBarVisibility]::Auto }
             $root.Content = $grid
             $root.Visibility = [System.Windows.Visibility]::Collapsed
             [void]$shell.PageHost.Children.Add($root)
@@ -199,10 +201,11 @@ function Show-WizardPage {
     if ($nextLabel) { $shell.BtnNext.Content = $nextLabel }
     $hasPrevious = [bool](Get-WizardNeighbor -PageId $Id -Direction Previous)
     $shell.BtnPrev.Visibility = if ($hasPrevious) { 'Visible' } else { 'Collapsed' }
-    $pathLength = @($script:Pages.Values | Where-Object { $_.Page.Kind -ne 'Settings' }).Count
+    $pathLength = @($script:Pages.Values | Where-Object { Test-WizardPageOnPath -Kind $_.Page.Kind }).Count
     $hint = 'Ces réglages sont enregistrés sur la clé, jamais sur le poste préparé.'
     if ($page.Kind -eq 'Step') { $hint = 'Étape {0} sur {1}' -f $page.Number, $pathLength }
     elseif ($page.Kind -eq 'Review') { $hint = 'Rien n''est lancé avant le clic sur Lancer. Aucun redémarrage automatique.' }
+    elseif ($page.Kind -eq 'Tool') { $hint = 'Outil en lecture seule : il ne modifie rien sur le poste, quel que soit le mode.' }
     $shell.TxtFootHint.Text = $hint
     # Le récapitulatif reflète la sélection du moment.
     if ($page.Kind -eq 'Review') { Update-UiState }
