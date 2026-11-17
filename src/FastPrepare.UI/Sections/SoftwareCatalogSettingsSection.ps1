@@ -23,6 +23,7 @@ Register-UiSection -Id 'software-catalog-settings' -Number 100 -Page 'catalogue'
         $c[$name].Add_TextChanged($onEdit)
     }
     $c.ChkSwDefault.Add_Click($onEdit)
+    $c.ChkSwSessionOnly.Add_Click($onEdit)
     $c.CmbSwSource.Add_SelectionChanged($onEdit)
     $c.RbSwWinget.Add_Checked($onEdit)
     $c.RbSwDownload.Add_Checked($onEdit)
@@ -52,6 +53,7 @@ function Update-SoftwareCatalogList {
             $item = [System.Windows.Controls.ListBoxItem]::new()
             $detail = if ($entry.Install.Type -eq 'winget') { 'winget · {0}' -f $entry.Install.Id } else { 'lien direct · {0}' -f $entry.Install.FileName }
             $text = [System.Windows.Controls.TextBlock]::new()
+            if ($entry.SessionOnly) { $detail += ' · session qui lance l''outil' }
             $text.Text = '{0}  —  {1}' -f $entry.Label, $detail
             $text.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
             $item.Content = $text
@@ -84,6 +86,7 @@ function Open-SoftwareForm {
         $isDownload = $install -and $install.Type -eq 'download'
         $c.TxtSwLabel.Text = if ($Entry) { $Entry.Label } else { '' }
         $c.ChkSwDefault.IsChecked = if ($Entry) { [bool]$Entry.DefaultChecked } else { $false }
+        $c.ChkSwSessionOnly.IsChecked = if ($Entry) { [bool]$Entry.SessionOnly } else { $false }
         $c.RbSwWinget.IsChecked = -not $isDownload
         $c.RbSwDownload.IsChecked = [bool]$isDownload
         $winget = $install -and $install.Type -eq 'winget'
@@ -115,7 +118,7 @@ function Get-SoftwareFormEntry {
     } else {
         [pscustomobject]@{ Type = 'winget'; Id = $c.TxtSwWingetId.Text; Source = [string]$c.CmbSwSource.SelectedItem.Content; Override = $c.TxtSwOverride.Text }
     }
-    $entry = ConvertTo-SoftwareEntry -InputObject ([pscustomobject]@{ Id = $id; Label = $c.TxtSwLabel.Text; DefaultChecked = [bool]$c.ChkSwDefault.IsChecked; Install = $install })
+    $entry = ConvertTo-SoftwareEntry -InputObject ([pscustomobject]@{ Id = $id; Label = $c.TxtSwLabel.Text; DefaultChecked = [bool]$c.ChkSwDefault.IsChecked; SessionOnly = [bool]$c.ChkSwSessionOnly.IsChecked; Install = $install })
     return [pscustomobject]@{ Entry = $entry; Problems = @(Get-SoftwareEntryError -Entry $entry -ExistingId $others) }
 }
 

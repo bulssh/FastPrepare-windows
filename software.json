@@ -44,17 +44,6 @@
         "Source": "winget",
         "Override": ""
       }
-    },
-    {
-      "Id": "claude",
-      "Label": "Claude (session ouverte)",
-      "DefaultChecked": false,
-      "Install": {
-        "Type": "winget",
-        "Id": "Anthropic.Claude",
-        "Source": "winget",
-        "Override": ""
-      }
     }
   ]
 }

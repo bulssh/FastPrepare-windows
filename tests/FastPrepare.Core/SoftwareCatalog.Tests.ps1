@@ -103,6 +103,25 @@ Describe 'Format-SoftwareInstallCommand' {
         Format-SoftwareInstallCommand -Entry (New-Download) | Should -Match 'setup.exe /S, signature « Éditeur Exemple » vérifiée$'
         Format-SoftwareInstallCommand -Entry (New-Download @{ FileName = 'outil.msi'; Arguments = ''; Sha256 = ('0F' * 32) }) | Should -Match 'msiexec /i outil.msi /qn /norestart, signature .* vérifiée, empreinte vérifiée'
     }
+    It 'session qui lance l''outil seulement : précisé dans la commande' {
+        $entry = New-Winget
+        $entry.SessionOnly = $true
+        Format-SoftwareInstallCommand -Entry $entry | Should -Match '--silent \(installé pour la session qui lance l''outil seulement\)$'
+    }
+}
+
+Describe 'SessionOnly (DEC30)' {
+    It 'faux par défaut, lu depuis le JSON s''il est présent' {
+        (New-Winget).SessionOnly | Should -BeFalse
+        $entry = ConvertTo-SoftwareEntry -InputObject ([pscustomobject]@{ Id = 'a'; Label = 'A'; SessionOnly = $true; Install = [pscustomobject]@{ Type = 'winget'; Id = 'a.b' } })
+        $entry.SessionOnly | Should -BeTrue
+    }
+    It 'libellé affiché : précisé seulement quand il le faut' {
+        Format-SoftwareLabel -Entry (New-Winget) | Should -Be '7-Zip'
+        $entry = New-Winget
+        $entry.SessionOnly = $true
+        Format-SoftwareLabel -Entry $entry | Should -Be '7-Zip — session qui lance l''outil seulement'
+    }
 }
 
 Describe 'Test-Selection — catalogue' {

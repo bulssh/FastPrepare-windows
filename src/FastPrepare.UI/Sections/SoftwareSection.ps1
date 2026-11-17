@@ -38,7 +38,7 @@ function Update-SoftwareCheckList {
     $checks = New-Object System.Collections.Generic.List[object]
     foreach ($software in @($Context.SoftwareCatalog)) {
         $checked = if ($previous.ContainsKey($software.Id)) { $previous[$software.Id] } else { [bool]$software.DefaultChecked }
-        $check = New-CheckItem -Content $software.Label -Tag $software.Id -IsChecked $checked
+        $check = New-CheckItem -Content (Format-SoftwareLabel -Entry $software) -Tag $software.Id -IsChecked $checked -Wrap
         $check.ToolTip = Format-SoftwareInstallCommand -Entry $software
         [void]$panel.Children.Add($check)
         $checks.Add($check)

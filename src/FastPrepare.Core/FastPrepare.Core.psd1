@@ -66,6 +66,7 @@
         'Get-SoftwareEntryError',
         'New-SoftwareId',
         'Format-SoftwareInstallCommand',
+        'Format-SoftwareLabel',
         'Format-ByteSize',
         'Format-DiskUsagePercent',
         'Get-DiskUsageExtensionLabel',

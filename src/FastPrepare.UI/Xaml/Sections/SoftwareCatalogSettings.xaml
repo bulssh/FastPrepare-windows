@@ -38,6 +38,9 @@
           <TextBlock Name="TxtSwId" Grid.Row="1" Grid.Column="1" Style="{StaticResource Tech}" Margin="0,4"/>
         </Grid>
         <CheckBox Name="ChkSwDefault" Content="Coché par défaut à l'étape Installations"/>
+        <CheckBox Name="ChkSwSessionOnly" Margin="0,4,0,0" ToolTip="Le paquet s'installe dans le profil de l'utilisateur qui lance l'outil (le technicien, avec les droits d'administrateur), pas pour les autres sessions du poste.">
+          <TextBlock TextWrapping="Wrap" Text="S'installe seulement pour la session qui lance l'outil (pas pour les autres utilisateurs du poste)"/>
+        </CheckBox>
         <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
           <TextBlock Text="Type d'installation" Width="190" VerticalAlignment="Center"/>
           <RadioButton Name="RbSwWinget" GroupName="SwType" Content="Paquet winget" IsChecked="True" Margin="0,0,16,0" VerticalContentAlignment="Center"/>

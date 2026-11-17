@@ -3,10 +3,13 @@
     plan d'architecture §3.3, DEC17). Source unique : appelées par la validation de software.json
     et par le formulaire de l'onglet Réglages. Fonctions pures.
 
-    Entrée : { Id, Label, DefaultChecked, Install }, Install étant
+    Entrée : { Id, Label, DefaultChecked, SessionOnly, Install }, Install étant
       { Type = 'winget'; Id; Source; Override }  ou
       { Type = 'download'; Url; FileName; Arguments; Sha256; ExpectedSigner }
     (même modèle d'élément que les utilitaires constructeurs de config.json).
+    SessionOnly (facultatif, faux par défaut) : l'installateur n'installe le logiciel que pour la
+    session qui lance l'outil, pas pour les autres utilisateurs du poste ; c'est affiché partout où le
+    logiciel apparaît (DEC30).
 #>
 
 $script:SoftwareInstallFields = @{
@@ -40,13 +43,27 @@ function ConvertTo-SoftwareEntry {
 
     $defaultChecked = $false
     if ($InputObject -and $InputObject.PSObject.Properties['DefaultChecked']) { $defaultChecked = [bool]$InputObject.DefaultChecked }
+    $sessionOnly = $false
+    if ($InputObject -and $InputObject.PSObject.Properties['SessionOnly']) { $sessionOnly = [bool]$InputObject.SessionOnly }
 
     return [pscustomobject][ordered]@{
         Id             = (Get-SoftwareText -Object $InputObject -Name 'Id')
         Label          = (Get-SoftwareText -Object $InputObject -Name 'Label')
         DefaultChecked = $defaultChecked
+        SessionOnly    = $sessionOnly
         Install        = [pscustomobject]$normalizedInstall
     }
+}
+
+function Format-SoftwareLabel {
+    <# Libellé affiché d'un logiciel : précise quand il ne s'installe que pour la session qui lance l'outil. #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)]$Entry)
+    if ($Entry.PSObject.Properties['SessionOnly'] -and $Entry.SessionOnly) {
+        return ('{0} — session qui lance l''outil seulement' -f $Entry.Label)
+    }
+    return [string]$Entry.Label
 }
 
 function Get-SoftwareEntryError {
@@ -123,21 +140,23 @@ function Format-SoftwareInstallCommand {
     [OutputType([string])]
     param([Parameter(Mandatory)]$Entry)
     $install = $Entry.Install
-    switch ([string]$install.Type) {
+    $text = switch ([string]$install.Type) {
         'winget' {
-            $text = 'winget install --id {0} --source {1} --silent' -f $install.Id, $install.Source
-            if ($install.Override) { $text += ' --override "{0}"' -f $install.Override }
-            return $text
+            $command = 'winget install --id {0} --source {1} --silent' -f $install.Id, $install.Source
+            if ($install.Override) { $command += ' --override "{0}"' -f $install.Override }
+            $command
         }
         'download' {
             $run = if ($install.FileName -match '\.msi$') { 'msiexec /i {0} /qn /norestart' -f $install.FileName } else { $install.FileName }
             if ($install.Arguments) { $run += ' ' + $install.Arguments }
-            $text = 'téléchargement de {0} → {1}, signature « {2} » vérifiée' -f $install.Url, $run, $install.ExpectedSigner
-            if ($install.Sha256) { $text += ', empreinte vérifiée' }
-            return $text
+            $command = 'téléchargement de {0} → {1}, signature « {2} » vérifiée' -f $install.Url, $run, $install.ExpectedSigner
+            if ($install.Sha256) { $command += ', empreinte vérifiée' }
+            $command
         }
         default { return '(type inconnu)' }
     }
+    if ($Entry.PSObject.Properties['SessionOnly'] -and $Entry.SessionOnly) { $text += ' (installé pour la session qui lance l''outil seulement)' }
+    return $text
 }
 
 function Get-SoftwareText {
