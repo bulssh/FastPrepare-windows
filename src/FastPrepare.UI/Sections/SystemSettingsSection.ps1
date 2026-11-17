@@ -24,7 +24,7 @@ Register-UiSection -Id 'system-settings' -Number 9 -Page 'systeme' -Column Right
     $Section.Controls.TxtNicsLoading.Visibility = if (@($Snapshot.Adapters).Count -eq 0) { 'Visible' } else { 'Collapsed' }
     foreach ($nic in @($Snapshot.Adapters)) {
         $suffix = if ($nic.Ipv6Enabled) { '' } else { ' (IPv6 déjà désactivé)' }
-        $check = New-CheckItem -Content ('{0} — {1}{2}' -f $nic.Name, $nic.Description, $suffix) -Tag $nic -IsChecked ([bool]$nic.Ipv6Enabled)
+        $check = New-CheckItem -Content ('{0} — {1}{2}' -f $nic.Name, $nic.Description, $suffix) -Tag $nic -IsChecked ([bool]$nic.Ipv6Enabled) -Wrap
         [void]$Section.Controls.PnlNics.Children.Add($check)
         $Section.State.NicChecks.Add($check)
     }

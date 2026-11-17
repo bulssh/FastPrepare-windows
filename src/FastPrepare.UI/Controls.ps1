@@ -120,16 +120,24 @@ function New-SoftwareRow {
 }
 
 function New-CheckItem {
-    <# Case à cocher simple, l'objet associé dans Tag. #>
+    <# Case à cocher simple, l'objet associé dans Tag. -Wrap : le libellé revient à la ligne au lieu d'être coupé. #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Content,
         $Tag,
         [bool]$IsChecked = $false,
-        [System.Windows.Thickness]$Margin
+        [System.Windows.Thickness]$Margin,
+        [switch]$Wrap
     )
     $check = [System.Windows.Controls.CheckBox]::new()
-    $check.Content = $Content
+    if ($Wrap) {
+        $label = [System.Windows.Controls.TextBlock]::new()
+        $label.TextWrapping = [System.Windows.TextWrapping]::Wrap
+        $label.Text = $Content
+        $check.Content = $label
+    } else {
+        $check.Content = $Content
+    }
     $check.Tag = $Tag
     $check.IsChecked = $IsChecked
     if ($PSBoundParameters.ContainsKey('Margin')) { $check.Margin = $Margin }
