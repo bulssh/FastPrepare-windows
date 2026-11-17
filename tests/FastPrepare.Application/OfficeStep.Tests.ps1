@@ -19,6 +19,8 @@ Describe 'Étape 7 en mode réel — Office via ODT' {
     BeforeEach {
         Mock @m Initialize-OdtFolder { 'C:\ODT\setup.exe' }
         Mock @m Invoke-Odt { [pscustomobject]@{ RebootRequired = $false; ConfigurationPath = 'C:\ODT\c.xml' } }
+        # Jamais le registre du poste qui exécute les tests : Office y est présent ou non selon la machine.
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $true; Msi = $false } }
     }
 
     It '<Key> : XML de l''édition passé à ODT, produit vérifié après installation' -ForEach @(

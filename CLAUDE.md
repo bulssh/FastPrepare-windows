@@ -2,7 +2,7 @@
 
 Ce fichier est lu au début de chaque session Claude Code. Il résume tout ce qu'il faut savoir pour
 continuer le projet sans l'historique des conversations précédentes. Les détails sont dans
-`docs/architecture_plan.md` (plan, décisions DEC1 à DEC27, journal des itérations), `docs/recette.md`
+`docs/architecture_plan.md` (plan, décisions DEC1 à DEC29, journal des itérations), `docs/recette.md`
 (recettes manuelles) et `docs/CONTRIBUTING.md` (règles de code). En cas de doute, ces documents font foi.
 
 ## Le projet
@@ -70,8 +70,8 @@ section, un logiciel : `docs/architecture_plan.md` §10.
 | `Lancer.cmd -Simulation` | L'outil, sans rien modifier (**toujours ce mode-là hors VM** : sans paramètre, l'outil s'ouvre en mode réel) |
 
 L'intégration continue (`.github/workflows/ci.yml`, Windows PowerShell 5.1) lance les trois premières
-à chaque envoi sur `main`. État au 15 novembre 2026 : **tout est vert** (1 760 tests, lint sans constat,
-vérification sans fenêtre réussie).
+à chaque envoi sur `main`. État au 17 novembre 2026 : 1 876 tests, lint sans constat, vérification sans
+fenêtre réussie sur le poste de développement.
 
 ## Pièges déjà rencontrés
 
@@ -81,6 +81,9 @@ vérification sans fenêtre réussie).
   paramètre `$Account`. Nommer différemment.
 - **Un test ne doit jamais agir sur le poste qui l'exécute** : tout appel système est simulé (un test
   lançait autrefois une vraie recherche Windows Update). En cas de doute, lancer les tests dans la VM.
+- **Ni dépendre de ce qui y est installé** : un test qui lit le vrai registre passe sur un poste avec
+  Office et échoue sur la machine de l'intégration continue (constaté avec `Get-InstalledOfficeKind`).
+  Simuler aussi les fonctions de détection, et regarder l'onglet Actions après chaque envoi.
 - Encodages : `.ps1/.psm1/.psd1` en UTF-8 **avec BOM** et CRLF ; `.xaml/.json/.md` en CRLF sans BOM.
 - WPF ne s'affiche pas à travers SSH (pas de bureau) : la construction de la fenêtre se teste avec
   `New-MainWindow` (sans affichage) ; l'affichage réel se vérifie dans la console de la VM.
