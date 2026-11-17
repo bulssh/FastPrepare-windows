@@ -2,7 +2,7 @@
 
 Ce fichier est lu au début de chaque session Claude Code. Il résume tout ce qu'il faut savoir pour
 continuer le projet sans l'historique des conversations précédentes. Les détails sont dans
-`docs/architecture_plan.md` (plan, décisions DEC1 à DEC29, journal des itérations), `docs/recette.md`
+`docs/architecture_plan.md` (plan, décisions DEC1 à DEC30, journal des itérations), `docs/recette.md`
 (recettes manuelles) et `docs/CONTRIBUTING.md` (règles de code). En cas de doute, ces documents font foi.
 
 ## Le projet
@@ -46,7 +46,8 @@ contacter un autre dépôt, ne jamais réintroduire d'ancien historique.
   écrits par l'outil, sans mot de passe (DEC27). `profils\` n'est pas versionné (liens RMM et
   antivirus propres à un client).
 - Office : ODT dans `C:\ODT`, XML généré à la volée. Utilitaires constructeur : Dell, HP, Lenovo,
-  Fujitsu uniquement. Logiciels de base : Adobe Reader, Chrome, Firefox (fr), 7-Zip, Claude.
+  Fujitsu uniquement. Logiciels de base : Adobe Reader, Chrome, Firefox (fr), 7-Zip (Claude retiré :
+  son paquet ne s'installe que pour la session du technicien, DEC30).
 
 ## Architecture en bref
 
@@ -105,13 +106,17 @@ Fait au 17 novembre 2026 : vérification dans la VM, sécurisation, recette d'af
 analyse de disque (itération 19), recettes en mode réel des 16 et 17 novembre (toutes les étapes sauf
 RMM et antivirus), passage du mode par défaut en réel, `actions/checkout` en v5.
 
-1. Recette sur de vrais postes de chaque marque (`docs/recette.md`, « Recette complète sur postes de
-   marque ») : codes de sortie des utilitaires (QO4), chemin de `ducmd.exe`.
-2. Points ouverts : options silencieuses RMM et antivirus à confirmer avec de vrais liens ; lien Lenovo
-   Thin Installer vide dans `config.json` ; paquet winget de Claude installé pour l'utilisateur seulement ;
-   le cahier des charges (hors dépôt) n'intègre pas encore DEC23 à DEC29.
-3. Ménage GitHub (par Yanis) : supprimer les branches `livraison` et `iteration-12` à `iteration-18`,
-   qui pointent toutes sur le commit de départ ; seule `main` sert.
+Aussi au 17 novembre 2026 : lien officiel de Thin Installer renseigné, option `SessionOnly` du
+catalogue et Claude retiré (DEC30), branches GitHub inutiles supprimées (seule `main` reste),
+cahier des charges et maquette (artefacts claude.ai de Yanis) mis à jour jusqu'à DEC30.
+
+Le laboratoire de Yanis n'a **ni poste de marque, ni console RMM, ni antivirus** : ces points ne
+peuvent pas être vérifiés avant les premières préparations réelles.
+
+1. QO7 à trancher par Yanis : mise à jour Lenovo par Thin Installer (demande un dépôt Update
+   Retriever) ou par Commercial Vantage.
+2. Premières préparations réelles : relever au journal les codes de sortie des utilitaires (QO4), le
+   chemin de `ducmd.exe`, les options silencieuses RMM et antivirus.
 
 ## Commits
 

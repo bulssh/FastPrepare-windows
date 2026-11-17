@@ -98,7 +98,7 @@ Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : _
 
 ## Itération 5 — utilitaire constructeur (poste de test de chaque marque)
 
-> Renseigner d'abord le lien de Thin Installer dans `config.json` (`Utilities.lenovo.Install[1].Url`, et si possible `Sha256`).
+> Lien de Thin Installer renseigné le 17 novembre 2026 (lien officiel de Lenovo, sans empreinte publiée). Le laboratoire de test n'a pas de poste de marque : cette partie se vérifie lors des premières préparations réelles. Mise à jour Lenovo : voir QO7 (dépôt Update Retriever).
 
 Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : __________
 
@@ -199,7 +199,8 @@ Avant la recette : `tools\Invoke-Lint.ps1` et `tools\Invoke-Tests.ps1` verts (it
 - [ ] Poste déjà renommé : pas de pastille, consigne en gris.
 - [ ] Plus aucun champ ni case de renommage ; le plan (bouton Lancer en simulation) compte 13 étapes et ne contient aucune ligne « Rename-Computer ».
 - [ ] Mémo et rapport final : « Renommage du poste puis redémarrage (avant l'outil) », « Connexion du compte 365 » ; plus de « Réinitialisation de Windows » ni d'« Activation d'Office ».
-- [ ] Section 8 : Adobe Acrobat Reader, Google Chrome, Mozilla Firefox (français), 7-Zip cochés ; Claude décoché. Onglet Réglages : test des cinq entrées réussi (paquets trouvés).
+- [ ] Section 8 : Adobe Acrobat Reader, Google Chrome, Mozilla Firefox (français), 7-Zip cochés (Claude retiré du catalogue, DEC30). Onglet Réglages : test des quatre entrées réussi (paquets trouvés).
+- [ ] Page Catalogue : case « S'installe seulement pour la session qui lance l'outil » cochée sur une entrée → la commande affichée le précise ; enregistrée → l'étape Installations l'indique à côté du libellé (DEC30).
 - [ ] Clé préparée **avant** cette itération : `tools\Build-Usb.ps1` conserve son `software.json` ; `-ReplaceSoftwareCatalog` pour prendre le nouveau catalogue de base.
 
 ## Première vérification sous Windows (itérations 13 à 18)

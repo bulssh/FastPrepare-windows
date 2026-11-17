@@ -43,7 +43,8 @@ Deux pages restent à part du parcours :
 - **Catalogue logiciels** — les logiciels proposés à l'étape Installations. On en ajoute un par son
   paquet winget ou par un lien direct (`.exe`, `.msi`), on le **teste sans rien télécharger ni
   installer**, puis on l'enregistre sur la clé. Catalogue de départ : Adobe Acrobat Reader, Google
-  Chrome, Mozilla Firefox, 7-Zip, Claude.
+  Chrome, Mozilla Firefox, 7-Zip. Un logiciel dont l'installateur ne vise que la session qui lance
+  l'outil (celle du technicien) est marqué comme tel, et l'étape Installations l'indique.
 - **Analyse de disque** — voir ce qui occupe un disque ([détails plus bas](#analyse-de-disque)).
 
 <details>
@@ -204,9 +205,10 @@ vivent dans la configuration, jamais dans le code.
   retraits et installations d'Office, programmes Microsoft, OneDrive, logiciels, utilitaire HP,
   Windows Update, IPv6, alimentation, création et suppression de sessions, lecteur réseau,
   imprimante IP, jonction au domaine. Le mode par défaut est désormais le **mode réel**.
-- **À confirmer avec du matériel et des consoles réels** : options silencieuses des agents RMM et
-  des antivirus, codes de sortie des utilitaires constructeur sur des postes de chaque marque, lien
-  du Thin Installer de Lenovo (vide dans `config.json`).
+- **Non vérifiable dans le laboratoire de test** (ni poste de marque, ni console RMM, ni antivirus) :
+  options silencieuses des agents RMM et des antivirus, codes de sortie et chemins des utilitaires
+  constructeur sur des postes de chaque marque, installation de Thin Installer (lien officiel de
+  Lenovo renseigné, signature Lenovo exigée). À confirmer lors des premières préparations réelles.
 
 ## Développement
 
