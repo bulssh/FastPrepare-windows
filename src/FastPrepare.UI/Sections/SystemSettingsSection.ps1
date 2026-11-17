@@ -10,7 +10,11 @@ Register-UiSection -Id 'system-settings' -Number 9 -Page 'systeme' -Column Right
     $power = $Context.Config.Power
     $scope = if ($power.ApplyOnBattery) { 'secteur et batterie' } else { 'secteur' }
     $suffix = if ($power.ApplyOnBattery) { 'ac|dc' } else { 'ac' }
-    $Section.Controls.ChkPower.Content = "Éteindre l'écran après {0} min · Mise en veille après {1} min ({2})" -f $power.MonitorTimeoutMinutes, $power.StandbyTimeoutMinutes, $scope
+    # Libellé dans un TextBlock qui revient à la ligne : la colonne de droite est trop étroite pour une ligne.
+    $label = [System.Windows.Controls.TextBlock]::new()
+    $label.TextWrapping = [System.Windows.TextWrapping]::Wrap
+    $label.Text = "Éteindre l'écran après {0} min · Mise en veille après {1} min ({2})" -f $power.MonitorTimeoutMinutes, $power.StandbyTimeoutMinutes, $scope
+    $Section.Controls.ChkPower.Content = $label
     $Section.Controls.TxtPowerTech.Text = 'powercfg /change monitor-timeout-{0} {1} · standby-timeout-{0} {2}' -f $suffix, $power.MonitorTimeoutMinutes, $power.StandbyTimeoutMinutes
 } -OnSnapshot {
     param($Section, $Snapshot, $Context)
