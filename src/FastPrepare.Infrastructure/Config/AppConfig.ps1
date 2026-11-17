@@ -175,6 +175,13 @@ function Test-UtilityConfig {
                         [void](Test-ConfigField $Report $item 'Arguments' $itemPath String)
                         [void](Test-ConfigField $Report $item 'Sha256' $itemPath String -Optional)
                         [void](Test-ConfigField $Report $item 'ExpectedSigner' $itemPath String -Optional)
+                        # Archive .zip : « Run » nomme l'exécutable qu'elle contient et qui est lancé.
+                        if ([string]$item.FileName -match '\.zip$') {
+                            if (Test-ConfigField $Report $item 'Run' $itemPath NonEmptyString) {
+                                if ($item.Run -ne [System.IO.Path]::GetFileName($item.Run) -or $item.Run -notmatch '\.exe$') { $Report.Errors.Add("$itemPath.Run : nom simple d'un .exe attendu") }
+                            }
+                            if (-not $item.ExpectedSigner) { $Report.Errors.Add("$itemPath.ExpectedSigner : obligatoire pour une archive") }
+                        }
                         if (Test-ConfigField $Report $item 'Url' $itemPath String) {
                             if (-not $item.Url) { $Report.Warnings.Add("$itemPath.Url : lien à renseigner avant la première installation réelle") }
                             elseif ($item.Url -notmatch '^https://') { $Report.Errors.Add("$itemPath.Url : lien https:// attendu") }
@@ -197,6 +204,7 @@ function Test-UtilityConfig {
                 }
             }
         }
+        [void](Test-ConfigField $Report $Utility.Update 'Notice' "$Path.Update" NonEmptyString -Optional)
         # Sens des codes de sortie propres à l'outil, écrit au journal en cas d'échec (facultatif).
         if (Test-ConfigField $Report $Utility.Update 'ExitCodeMessages' "$Path.Update" Object -Optional) {
             foreach ($entry in $Utility.Update.ExitCodeMessages.PSObject.Properties) {

@@ -9,13 +9,13 @@ BeforeAll {
 
     function New-LenovoConfig {
         $config = Get-TestConfig
-        $config.Utilities.lenovo.Install[1].Url = 'https://exemple.test/thin.exe'
+        $config.Utilities.lenovo.Install[0].Url = 'https://exemple.test/vantage.zip'
         return $config
     }
     function New-LenovoEmptyLinkConfig {
         # Lien vide (cas d'une clé dont config.json n'est pas encore renseigné), quel que soit config.json du dépôt.
         $config = Get-TestConfig
-        $config.Utilities.lenovo.Install[1].Url = ''
+        $config.Utilities.lenovo.Install[0].Url = ''
         return $config
     }
     function Invoke-Vendor($Context, [string]$Key, [switch]$Update) {
@@ -32,7 +32,7 @@ Describe 'Variables de chemin de config.json' {
         $variables = Get-ConfigPathVariable -Config (Get-TestConfig)
         $variables['ProgramFiles(x86)'] | Should -Be ([Environment]::GetFolderPath('ProgramFilesX86'))
         $variables['CacheFolder'] | Should -Be (Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'FastPrepare\cache')
-        Expand-ConfigPath -Path (Get-TestConfig).Utilities.lenovo.Update.FilePath -Variables $variables | Should -Match '^.+\\Lenovo\\ThinInstaller\\ThinInstaller\.exe$'
+        Expand-ConfigPath -Path (Get-TestConfig).Utilities.lenovo.Update.FilePath -Variables $variables | Should -Match '^.+\\Lenovo\\SUHelper\\suhelper\.exe$'
     }
 }
 
@@ -56,12 +56,12 @@ Describe 'Préchargement' {
         $result.DotNet.WingetId | Should -Be 'Microsoft.DotNet.DesktopRuntime.8'
         @($result.Errors).Count | Should -Be 0
     }
-    It 'Lenovo : Thin Installer téléchargé dans le cache, puis retrouvé par l''étape' {
+    It 'Lenovo : paquet Commercial Vantage téléchargé dans le cache, puis retrouvé par l''étape' {
         $context = New-TestContext -Folder (Join-Path $TestDrive 'l1') -Config (New-LenovoConfig)
         $result = Invoke-Prefetch -UtilityKey 'lenovo' -Context $context
         @($result.Files).Count | Should -Be 1
-        $item = $context.Config.Utilities.lenovo.Install[1]
-        Get-PrefetchedItem -UtilityKey 'lenovo' -Item $item -Context $context | Should -Be (Join-Path $context.Paths.Cache 'lenovo\ThinInstallerSetup.exe')
+        $item = $context.Config.Utilities.lenovo.Install[0]
+        Get-PrefetchedItem -UtilityKey 'lenovo' -Item $item -Context $context | Should -Be (Join-Path $context.Paths.Cache 'lenovo\LenovoCommercialVantage.zip')
     }
     It 'erreur de téléchargement : signalée, non bloquante' {
         Mock @m Save-RemoteFile { throw 'réseau indisponible' }
@@ -116,31 +116,44 @@ Describe 'Étape 6 en mode réel — dépendance .NET puis utilitaire' {
         [void](Invoke-Vendor $context 'dell')
         ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'plus récent.*8\.0\.30'
     }
-    It 'Lenovo, lien vide : Vantage installé (msstore), Thin Installer en échec explicite' {
+    It 'Lenovo, lien vide : échec explicite' {
         $results = Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real -Config (New-LenovoEmptyLinkConfig)) 'lenovo'
-        Should -Invoke @m Install-WingetPackage -Times 1 -ParameterFilter { $Id -eq '9NR5B8GVVM13' -and $Source -eq 'msstore' }
-        $results[1].Outcome | Should -Be 'Failed'
-        $results[1].Error | Should -Match 'lien de téléchargement'
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[0].Error | Should -Match 'lien de téléchargement'
     }
-    It 'Lenovo, fichier préchargé : réutilisé, signature Lenovo vérifiée, lancé avec ses arguments silencieux' {
+    It 'Lenovo, paquet préchargé : extrait, VantageInstaller.exe vérifié (Lenovo) puis lancé avec Install -Vantage -SuHelper' {
         Mock @m Save-RemoteFile { throw 'ne doit pas être appelé' }
+        Mock @m Expand-DownloadedArchive { 'C:\cache\lenovo\LenovoCommercialVantage\VantageInstaller.exe' }
         Mock @m Assert-TrustedExecutable { }
         Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
         $context = New-TestContext -Folder (Join-Path $TestDrive 'l3') -Mode Real -Config (New-LenovoConfig)
-        $cached = Join-Path $context.Paths.Cache 'lenovo\ThinInstallerSetup.exe'
+        $cached = Join-Path $context.Paths.Cache 'lenovo\LenovoCommercialVantage.zip'
         New-Item -ItemType Directory -Path (Split-Path $cached) -Force | Out-Null
         Set-Content -LiteralPath $cached -Value 'x'
         $results = Invoke-Vendor $context 'lenovo'
-        $results[1].Outcome | Should -Be 'Succeeded'
-        Should -Invoke @m Assert-TrustedExecutable -Times 1 -ParameterFilter { $Path -eq $cached -and $ExpectedSigner -eq 'Lenovo' }
-        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $FilePath -eq $cached -and $ArgumentList -eq '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' }
+        $results[0].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Expand-DownloadedArchive -Times 1 -ParameterFilter { $Path -eq $cached -and $FileName -eq 'VantageInstaller.exe' }
+        Should -Invoke @m Assert-TrustedExecutable -Times 1 -ParameterFilter { $Path -like '*\VantageInstaller.exe' -and $ExpectedSigner -eq 'Lenovo' }
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $FilePath -like '*\VantageInstaller.exe' -and $ArgumentList -eq 'Install -Vantage -SuHelper' }
+    }
+    It 'lien direct vers un .exe : lancé tel quel, sans extraction' {
+        Mock @m Save-RemoteFile { New-Item -ItemType Directory -Path (Split-Path $Destination) -Force | Out-Null; Set-Content -LiteralPath $Destination -Value 'x'; $Destination }
+        Mock @m Expand-DownloadedArchive { throw 'ne doit pas être appelé' }
+        Mock @m Assert-TrustedExecutable { }
+        Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
+        $config = New-LenovoConfig
+        $config.Utilities.lenovo.Install[0] = [pscustomobject]@{ Type = 'download'; Url = 'https://exemple.test/outil.exe'; FileName = 'outil.exe'; Arguments = '/S'; Sha256 = ''; ExpectedSigner = 'Lenovo' }
+        $results = Invoke-Vendor (New-TestContext -Folder (Join-Path $TestDrive 'l5') -Mode Real -Config $config) 'lenovo'
+        $results[0].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $FilePath -like '*\lenovo\outil.exe' -and $ArgumentList -eq '/S' }
     }
     It 'signature refusée : rien n''est lancé' {
         Mock @m Save-RemoteFile { New-Item -ItemType Directory -Path (Split-Path $Destination) -Force | Out-Null; Set-Content -LiteralPath $Destination -Value 'x'; $Destination }
+        Mock @m Expand-DownloadedArchive { 'C:\cache\VantageInstaller.exe' }
         Mock @m Assert-TrustedExecutable { throw 'signature non valide' }
         Mock @m Invoke-ExternalProcess { }
         $results = Invoke-Vendor (New-TestContext -Folder (Join-Path $TestDrive 'l4') -Mode Real -Config (New-LenovoConfig)) 'lenovo'
-        $results[1].Outcome | Should -Be 'Failed'
+        $results[0].Outcome | Should -Be 'Failed'
         Should -Invoke @m Invoke-ExternalProcess -Times 0
     }
 }
@@ -175,6 +188,21 @@ Describe 'Étape 11 en mode réel — mise à jour par l''utilitaire' {
         $context = New-TestContext -Folder $TestDrive -Mode Real
         [void](Invoke-Vendor $context 'dell' -Update)
         Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $ExitCodeMessage.Count -eq 0 }
+    }
+    It 'Lenovo : SU Helper lancé sans les paquets à redémarrage forcé, rappel « en arrière-plan » au journal' {
+        # Aucun téléchargement ni extraction réels : l'étape d'installation tourne aussi.
+        Mock @m Save-RemoteFile { New-Item -ItemType Directory -Path (Split-Path $Destination) -Force | Out-Null; Set-Content -LiteralPath $Destination -Value 'x'; $Destination }
+        Mock @m Expand-DownloadedArchive { 'C:\cache\VantageInstaller.exe' }
+        Mock @m Assert-TrustedExecutable { }
+        Mock @m Find-InstalledExecutable { 'C:\Program Files\Lenovo\SUHelper\suhelper.exe' }
+        Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
+        $context = New-TestContext -Folder (Join-Path $TestDrive 'l6') -Mode Real -Config (New-LenovoConfig)
+        $results = Invoke-Vendor $context 'lenovo' -Update
+        $results[-1].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter {
+            $FilePath -eq 'C:\Program Files\Lenovo\SUHelper\suhelper.exe' -and $ArgumentList -match '-autoupdate' -and $ArgumentList -match '-reboottype 0,3,5' -and $ArgumentList -match '-noreboot' -and $ExitCodeMessage[2] -match 'déjà en cours'
+        }
+        ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'arrière-plan'
     }
     It 'outil introuvable : échec explicite' {
         Mock @m Find-InstalledExecutable { throw 'Outil « HPImageAssistant.exe » introuvable' }

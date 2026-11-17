@@ -27,6 +27,45 @@ Describe 'Save-RemoteFile' {
     }
 }
 
+Describe 'Expand-DownloadedArchive' {
+    BeforeAll {
+        Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+        function New-TestZip([string]$Path, [string[]]$Entries) {
+            $zip = [System.IO.Compression.ZipFile]::Open($Path, 'Create')
+            try {
+                foreach ($entry in $Entries) {
+                    $writer = New-Object System.IO.StreamWriter(($zip.CreateEntry($entry)).Open())
+                    $writer.Write('x'); $writer.Dispose()
+                }
+            } finally { $zip.Dispose() }
+        }
+    }
+    It 'extrait dans un dossier du nom de l''archive et renvoie l''exécutable demandé' {
+        $zip = Join-Path $TestDrive 'paquet.zip'
+        New-TestZip $zip @('Paquet/VantageInstaller.exe', 'Paquet/SystemUpdate/autre.exe')
+        $path = Expand-DownloadedArchive -Path $zip -FileName 'VantageInstaller.exe'
+        $path | Should -Be (Join-Path $TestDrive 'paquet\Paquet\VantageInstaller.exe')
+        $path | Should -Exist
+    }
+    It 'extraction précédente remplacée, pas mélangée' {
+        $zip = Join-Path $TestDrive 'deux.zip'
+        New-TestZip $zip @('a/outil.exe')
+        [void](Expand-DownloadedArchive -Path $zip -FileName 'outil.exe')
+        Set-Content -LiteralPath (Join-Path $TestDrive 'deux\reste.txt') -Value 'ancien'
+        [void](Expand-DownloadedArchive -Path $zip -FileName 'outil.exe')
+        Join-Path $TestDrive 'deux\reste.txt' | Should -Not -Exist
+    }
+    It 'exécutable absent ou en double : erreur explicite' {
+        $zip = Join-Path $TestDrive 'double.zip'
+        New-TestZip $zip @('a/outil.exe', 'b/outil.exe')
+        { Expand-DownloadedArchive -Path $zip -FileName 'outil.exe' } | Should -Throw '*2 fichier(s)*'
+        { Expand-DownloadedArchive -Path $zip -FileName 'absent.exe' } | Should -Throw '*0 fichier(s)*'
+    }
+    It 'nom avec un dossier : refusé' {
+        { Expand-DownloadedArchive -Path (Join-Path $TestDrive 'x.zip') -FileName '..\outil.exe' } | Should -Throw '*refusé*'
+    }
+}
+
 Describe 'Assert-TrustedExecutable' {
     BeforeAll { $notepad = Join-Path ([Environment]::GetFolderPath('System')) 'notepad.exe' }
 

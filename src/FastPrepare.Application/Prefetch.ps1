@@ -2,7 +2,7 @@
     Téléchargement anticipé de l'utilitaire constructeur (cahier des charges, section 5 :
     « Téléchargement lancé dès le clic, dépendances comprises »).
 
-    Ce qui est préchargé : les éléments « download » (lien direct, ex. Lenovo Thin Installer),
+    Ce qui est préchargé : les éléments « download » (lien direct, ex. paquet Lenovo Commercial Vantage),
     placés dans le cache ; et, pour un utilitaire à dépendance .NET (Dell), la version proposée par
     winget et le runtime correspondant sont résolus tout de suite, pour signaler un problème avant
     de lancer. Les paquets winget ne sont pas préchargés : winget install ne réutilise pas un dossier

@@ -78,6 +78,33 @@ function Save-HttpFile {
     }
 }
 
+function Expand-DownloadedArchive {
+    <#
+        Extrait l'archive .zip -Path dans un dossier neuf, voisin de l'archive et du même nom
+        (l'ancien est supprimé : jamais de mélange avec une extraction précédente), puis renvoie le
+        chemin de l'unique fichier nommé -FileName qu'elle contient. Le format ZIP de .NET refuse
+        les chemins qui sortiraient du dossier d'extraction.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$FileName,
+        $Log
+    )
+    if ($FileName -ne [System.IO.Path]::GetFileName($FileName)) { throw "Nom de fichier refusé : $FileName" }
+    $folder = Join-Path (Split-Path -Path $Path -Parent) ([System.IO.Path]::GetFileNameWithoutExtension($Path))
+    if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Recurse -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message "Extraction : $Path → $folder" }
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($Path, $folder)
+    $found = @(Get-ChildItem -LiteralPath $folder -Recurse -File -Filter $FileName)
+    if ($found.Count -ne 1) {
+        throw ("{0} : {1} fichier(s) « {2} » dans l'archive, un seul attendu." -f [System.IO.Path]::GetFileName($Path), $found.Count, $FileName)
+    }
+    return $found[0].FullName
+}
+
 function Assert-TrustedExecutable {
     <#
         Refuse de laisser lancer un exécutable dont la signature Authenticode n'est pas valide, ou

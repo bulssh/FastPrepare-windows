@@ -59,9 +59,11 @@ Register-Step -Id 'install-vendor-utility' -Section 5 -Title 'Installation de l'
             $path = Get-PrefetchedItem -UtilityKey $key -Item $item -Context $Context
             if ($path) { Write-RunLog -Log $log -Message "Fichier préchargé utilisé : $path" }
             else { $path = Save-RemoteFile -Url $item.Url -Destination (Get-PrefetchCachePath -UtilityKey $key -Item $item -Context $Context) -Sha256 ([string]$item.Sha256) -Log $log }
+            # Archive (.zip) : l'exécutable à lancer est le fichier « Run » qu'elle contient.
+            if ([string]$item.FileName -match '\.zip$') { $path = Expand-DownloadedArchive -Path $path -FileName ([string]$item.Run) -Log $log }
             # Vérifié au moment de lancer, qu'il vienne du cache ou d'être téléchargé.
             Assert-TrustedExecutable -Path $path -ExpectedSigner ([string]$item.ExpectedSigner)
-            $result = Invoke-ExternalProcess -FilePath $path -ArgumentList ([string]$item.Arguments) -TimeoutMinutes 30 -Log $log
+            $result = Invoke-ExternalProcess -FilePath $path -ArgumentList ([string]$item.Arguments) -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 60 -Log $log
             [pscustomobject]@{ RebootRequired = $result.RebootRequired }
         }
         default { throw "action inconnue : $($Action.Parameters.Kind)" }

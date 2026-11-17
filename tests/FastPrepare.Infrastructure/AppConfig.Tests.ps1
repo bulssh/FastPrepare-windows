@@ -12,11 +12,11 @@ Describe 'Assert-AppConfig' {
         { Assert-AppConfig -Config (Get-TestConfig) } | Should -Not -Throw
     }
 
-    It 'lien Thin Installer vide : avertissement, pas une erreur' {
+    It 'lien de téléchargement vide : avertissement, pas une erreur' {
         $config = Get-TestConfig
-        $config.Utilities.lenovo.Install[1].Url = ''
+        $config.Utilities.lenovo.Install[0].Url = ''
         $warnings = Assert-AppConfig -Config $config
-        $warnings | Should -Contain 'Utilities.lenovo.Install[1].Url : lien à renseigner avant la première installation réelle'
+        $warnings | Should -Contain 'Utilities.lenovo.Install[0].Url : lien à renseigner avant la première installation réelle'
     }
 
     It 'ancienne configuration (sans ConfigVersion) : refus explicite' {
@@ -83,7 +83,7 @@ Describe 'Assert-AppConfig' {
 
     It 'lien de téléchargement non https : erreur' {
         $config = Get-TestConfig
-        $config.Utilities.lenovo.Install[1].Url = 'http://exemple.test/ThinInstaller.exe'
+        $config.Utilities.lenovo.Install[0].Url = 'http://exemple.test/vantage.zip'
         Get-ConfigError $config | Should -Match 'https://'
     }
 
@@ -110,6 +110,18 @@ Describe 'Assert-AppConfig' {
         $config = Get-TestConfig
         $config.Utilities.hp.Update.ExitCodeMessages.'16386' = ' '
         Get-ConfigError $config | Should -Match 'ExitCodeMessages.16386 : texte attendu'
+    }
+
+    It 'archive .zip : Run (nom simple d''un .exe) et éditeur attendu exigés' {
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[0].Run = '..\VantageInstaller.exe'
+        Get-ConfigError $config | Should -Match 'Install\[0\]\.Run : nom simple'
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[0].PSObject.Properties.Remove('Run')
+        Get-ConfigError $config | Should -Match 'Install\[0\]\.Run : absent'
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[0].ExpectedSigner = ''
+        Get-ConfigError $config | Should -Match 'ExpectedSigner : obligatoire pour une archive'
     }
 
     It 'motif de constructeur invalide : erreur' {

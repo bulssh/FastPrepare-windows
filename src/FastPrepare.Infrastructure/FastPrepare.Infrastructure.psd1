@@ -36,6 +36,7 @@
         'Get-SystemExecutablePath',
         'Save-RemoteFile',
         'Save-RemoteInstaller',
+        'Expand-DownloadedArchive',
         'Assert-TrustedExecutable',
         'Set-PowerTimeout',
         'Get-PowerTimeoutSetting',
