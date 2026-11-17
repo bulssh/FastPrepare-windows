@@ -85,7 +85,7 @@
       "ManufacturerPattern": "Lenovo",
       "Install": [
         { "Type": "winget", "Id": "9NR5B8GVVM13", "Source": "msstore" },
-        { "Type": "download", "Url": "", "FileName": "ThinInstallerSetup.exe", "Arguments": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART", "Sha256": "", "ExpectedSigner": "Lenovo" }
+        { "Type": "download", "Url": "https://download.lenovo.com/pccbbs/thinkvantage_en/lenovo_thininstaller_1.04.02.00024.exe", "FileName": "ThinInstallerSetup.exe", "Arguments": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART", "Sha256": "", "ExpectedSigner": "Lenovo" }
       ],
       "Update": {
         "FilePath": "%ProgramFiles(x86)%\\Lenovo\\ThinInstaller\\ThinInstaller.exe",

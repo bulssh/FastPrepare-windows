@@ -13,7 +13,9 @@ Describe 'Assert-AppConfig' {
     }
 
     It 'lien Thin Installer vide : avertissement, pas une erreur' {
-        $warnings = Assert-AppConfig -Config (Get-TestConfig)
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[1].Url = ''
+        $warnings = Assert-AppConfig -Config $config
         $warnings | Should -Contain 'Utilities.lenovo.Install[1].Url : lien à renseigner avant la première installation réelle'
     }
 

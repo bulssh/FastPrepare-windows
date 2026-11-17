@@ -12,6 +12,12 @@ BeforeAll {
         $config.Utilities.lenovo.Install[1].Url = 'https://exemple.test/thin.exe'
         return $config
     }
+    function New-LenovoEmptyLinkConfig {
+        # Lien vide (cas d'une clé dont config.json n'est pas encore renseigné), quel que soit config.json du dépôt.
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[1].Url = ''
+        return $config
+    }
     function Invoke-Vendor($Context, [string]$Key, [switch]$Update) {
         $selection = New-Selection
         $selection.VendorUtility.Key = $Key
@@ -41,7 +47,7 @@ Describe 'Préchargement' {
         $context = New-TestContext -Folder $TestDrive
         Test-PrefetchUseful -UtilityKey 'dell' -Context $context | Should -BeTrue
         Test-PrefetchUseful -UtilityKey 'hp' -Context $context | Should -BeFalse
-        Test-PrefetchUseful -UtilityKey 'lenovo' -Context $context | Should -BeFalse   # lien Thin Installer vide
+        Test-PrefetchUseful -UtilityKey 'lenovo' -Context (New-TestContext -Folder $TestDrive -Config (New-LenovoEmptyLinkConfig)) | Should -BeFalse
         Test-PrefetchUseful -UtilityKey 'lenovo' -Context (New-TestContext -Folder $TestDrive -Config (New-LenovoConfig)) | Should -BeTrue
     }
     It 'Dell : version proposée par winget et runtime .NET résolus' {
@@ -111,7 +117,7 @@ Describe 'Étape 6 en mode réel — dépendance .NET puis utilitaire' {
         ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'plus récent.*8\.0\.30'
     }
     It 'Lenovo, lien vide : Vantage installé (msstore), Thin Installer en échec explicite' {
-        $results = Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real) 'lenovo'
+        $results = Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real -Config (New-LenovoEmptyLinkConfig)) 'lenovo'
         Should -Invoke @m Install-WingetPackage -Times 1 -ParameterFilter { $Id -eq '9NR5B8GVVM13' -and $Source -eq 'msstore' }
         $results[1].Outcome | Should -Be 'Failed'
         $results[1].Error | Should -Match 'lien de téléchargement'
