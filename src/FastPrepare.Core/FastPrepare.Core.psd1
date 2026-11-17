@@ -70,7 +70,8 @@
         'Format-DiskUsagePercent',
         'Get-DiskUsageExtensionLabel',
         'Get-DiskUsageColorIndex',
-        'Get-TreemapLayout'
+        'Get-TreemapLayout',
+        'Get-ConnectivityLogEntry'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

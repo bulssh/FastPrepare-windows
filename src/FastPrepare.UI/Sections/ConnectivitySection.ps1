@@ -1,7 +1,7 @@
 ﻿<#
     Section 0 — Connexion internet (pastille de l'en-tête).
     Test périodique, non bloquant ; tant que la connexion n'est pas validée, Lancer reste grisé.
-    Seuls les changements d'état sont journalisés.
+    Journal : changements d'état, et ERREUR seulement si la coupure dépasse Connectivity.GraceSeconds (DEC28).
 #>
 
 Register-UiSection -Id 'connectivity' -Number 0 -Column Header -Initialize {
@@ -10,6 +10,8 @@ Register-UiSection -Id 'connectivity' -Number 0 -Column Header -Initialize {
     $Section.State.Settings = $settings
     $Section.State.Ok = $false
     $Section.State.Known = $false
+    $Section.State.FailingSince = $null
+    $Section.State.ErrorReported = $false
     $Section.State.NextCheck = Get-Date
     $Section.State.Probe = New-ConnectivityProbe -Url $settings.TestUrl -Expected $settings.Expected -TimeoutSeconds $settings.TimeoutSeconds
 
@@ -51,12 +53,18 @@ function Set-ConnectivityState {
     param($Section, [bool]$Ok)
     $state = $Section.State
     $changed = ($Ok -ne $state.Ok) -or (-not $state.Known)
+
+    # Journal : une coupure courte (démarrage, reprise de veille) n'est pas une erreur (DEC28).
+    $grace = if ($state.Settings.PSObject.Properties['GraceSeconds']) { [int]$state.Settings.GraceSeconds } else { 60 }
+    $entry = Get-ConnectivityLogEntry -Ok $Ok -WasKnown ([bool]$state.Known) -WasOk ([bool]$state.Ok) -FailingSince $state.FailingSince `
+        -ErrorReported ([bool]$state.ErrorReported) -Now (Get-Date) -GraceSeconds $grace
+    $state.FailingSince = $entry.FailingSince
+    $state.ErrorReported = $entry.ErrorReported
+    if ($entry.Level) { Write-RunLog -Log $script:Context.Log -Level $entry.Level -Message $entry.Message }
+
     $state.Known = $true
     $state.Ok = $Ok
     if (-not $changed) { return }
-
-    if ($Ok) { Write-RunLog -Log $script:Context.Log -Level OK -Message 'Connexion internet validée' }
-    else { Write-RunLog -Log $script:Context.Log -Level ERREUR -Message 'Pas de connexion internet' }
 
     $controls = $Section.Controls
     $prefix = if ($Ok) { 'NetOk' } else { 'NetKo' }
