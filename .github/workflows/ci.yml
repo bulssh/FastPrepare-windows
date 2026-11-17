@@ -2,7 +2,7 @@ name: Verifications
 
 on:
   push:
-    branches: [main, livraison]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
