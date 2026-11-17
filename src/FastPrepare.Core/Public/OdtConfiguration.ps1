@@ -53,7 +53,13 @@ function Get-ExcludedOfficeApp {
 }
 
 function New-OdtInstallXml {
-    <# Fichier configuration.xml d'installation (texte indenté de deux espaces, sans déclaration XML). #>
+    <#
+        Fichier configuration.xml d'installation (texte indenté de deux espaces, sans déclaration XML).
+        -FallbackLanguage : langue installée si celle de Windows n'est pas proposée par Office
+        (attribut Fallback, recommandé par Microsoft avec MatchOS).
+        -RemoveMsi : <RemoveMSI/>, retrait des Office MSI 2007 à 2016 avant l'installation, la forme
+        documentée par Microsoft (le retrait MSI y est décrit au sein d'une installation).
+    #>
     [CmdletBinding()]
     [OutputType([string])]
     param(
@@ -61,7 +67,9 @@ function New-OdtInstallXml {
         [Parameter(Mandatory)][string]$Channel,
         [AllowEmptyCollection()][string[]]$ExcludedApp = @(),
         [string]$Architecture = '64',
-        [string]$Language = 'MatchOS'
+        [string]$Language = 'MatchOS',
+        [string]$FallbackLanguage = 'en-us',
+        [switch]$RemoveMsi
     )
 
     return (Invoke-OdtXmlWriter -Body {
@@ -73,6 +81,7 @@ function New-OdtInstallXml {
             $writer.WriteAttributeString('ID', $ProductId)
             $writer.WriteStartElement('Language')
             $writer.WriteAttributeString('ID', $Language)
+            if ($Language -eq 'MatchOS' -and $FallbackLanguage) { $writer.WriteAttributeString('Fallback', $FallbackLanguage) }
             $writer.WriteEndElement()
             foreach ($app in @($ExcludedApp)) {
                 if (-not $app) { continue }
@@ -86,6 +95,11 @@ function New-OdtInstallXml {
             $writer.WriteStartElement('Updates')
             $writer.WriteAttributeString('Enabled', 'TRUE')
             $writer.WriteEndElement()
+
+            if ($RemoveMsi) {
+                $writer.WriteStartElement('RemoveMSI')
+                $writer.WriteEndElement()
+            }
         })
 }
 

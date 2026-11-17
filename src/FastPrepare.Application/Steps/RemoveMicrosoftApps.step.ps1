@@ -9,13 +9,22 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
     $ms = $Selection.MicrosoftApps
 
     if ($ms.OfficeClickToRun -or $ms.OfficeMsi) {
-        $parts = @()
-        if ($ms.OfficeClickToRun) { $parts += 'Click-to-Run, toutes éditions et langues' }
-        if ($ms.OfficeMsi) { $parts += 'MSI 2010-2016' }
-        $label = 'Office : ODT /configure, suppression {0}' -f ($parts -join ' + ')
-        if ($ms.OutlookClassic) { $label += ' · Outlook classique retiré avec la suite' }
-        $xml = New-OdtRemoveXml -RemoveClickToRun:([bool]$ms.OfficeClickToRun) -RemoveMsi:([bool]$ms.OfficeMsi)
-        New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{ Kind = 'OdtRemove'; Xml = $xml; ClickToRun = [bool]$ms.OfficeClickToRun; Msi = [bool]$ms.OfficeMsi }
+        # Office MSI avec une installation d'Office prévue : retiré par l'installation (RemoveMSI dans
+        # son XML, forme documentée par Microsoft), pas par un passage d'ODT à part.
+        $msiWithInstall = [bool]$ms.OfficeMsi -and [bool]$Selection.Office.EditionKey
+        $msiHere = [bool]$ms.OfficeMsi -and -not $msiWithInstall
+        if ($ms.OfficeClickToRun -or $msiHere) {
+            $parts = @()
+            if ($ms.OfficeClickToRun) { $parts += 'Click-to-Run, toutes éditions et langues' }
+            if ($msiHere) { $parts += 'MSI 2010-2016' }
+            $label = 'Office : ODT /configure, suppression {0}' -f ($parts -join ' + ')
+            if ($ms.OutlookClassic) { $label += ' · Outlook classique retiré avec la suite' }
+            $xml = New-OdtRemoveXml -RemoveClickToRun:([bool]$ms.OfficeClickToRun) -RemoveMsi:$msiHere
+            New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{ Kind = 'OdtRemove'; Xml = $xml; ClickToRun = [bool]$ms.OfficeClickToRun; Msi = $msiHere }
+        }
+        if ($msiWithInstall) {
+            New-StepAction -Label 'Office MSI 2010-2016 : retiré par l''installation d''Office (RemoveMSI dans son XML, étape 7)' -Parameters @{ Kind = 'MsiWithInstall' }
+        }
     } elseif ($ms.OutlookClassic) {
         New-PlanWarning -Message 'Outlook classique coché sans « Office Click-to-Run » ni « Office MSI » : il n''est retiré qu''avec la suite Office, aucune action prévue (question ouverte QO1).'
     }
@@ -52,7 +61,20 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
             }
             $setup = Initialize-OdtFolder -Folder $Context.Paths.OdtFolder -SetupUrl $Context.Config.Office.OdtSetupUrl -Log $log
             $result = Invoke-Odt -SetupPath $setup -Xml $p.Xml -Name 'suppression' -Log $log
+            # Contrôle après coup : un ODT terminé sans erreur ne suffit pas.
+            $after = Get-InstalledOfficeKind
+            if ($p.ClickToRun -and $after.ClickToRun) {
+                throw ('ODT terminé, mais Office Click-to-Run encore présent ({0})' -f (@(Get-OfficeClickToRunProduct) -join ', '))
+            }
+            if ($p.Msi -and $after.Msi) {
+                # Microsoft : le retrait MSI se termine au redémarrage, qui n'est pas imposé.
+                Write-RunLog -Log $log -Level ATTN -Message 'Office MSI encore inscrit sur le poste : son retrait se termine au redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications'
+            }
+            Write-RunLog -Log $log -Message 'Office : suppression vérifiée sur le poste'
             [pscustomobject]@{ RebootRequired = $result.RebootRequired }
+        }
+        'MsiWithInstall' {
+            Write-RunLog -Log $log -Message 'Office MSI : retrait confié à l''installation d''Office (RemoveMSI), étape 7'
         }
         'AppxRemove' {
             # Applications fermées avant le retrait du paquet (nouvel Outlook, nouveau Teams).

@@ -13,10 +13,12 @@ Register-Step -Id 'install-office' -Section 6 -Title 'Installation d''Office' -P
     $edition = Get-OfficeEdition -OfficeConfig $office -Key $key
     $productId = Get-OfficeProductId -Edition $edition -WithoutTeams:([bool]$Selection.Office.WithoutTeams)
     $excluded = Get-ExcludedOfficeApp -OptionalApp @($office.OptionalApps) -IncludedId @($Selection.Office.IncludedApps)
-    $xml = New-OdtInstallXml -ProductId $productId -Channel $edition.Channel -ExcludedApp $excluded -Architecture $office.Architecture -Language $office.Language
+    # Office MSI coché à l'étape Nettoyage : retiré par cette installation (RemoveMSI, forme documentée).
+    $removeMsi = [bool]$Selection.MicrosoftApps.OfficeMsi
+    $xml = New-OdtInstallXml -ProductId $productId -Channel $edition.Channel -ExcludedApp $excluded -Architecture $office.Architecture -Language $office.Language -RemoveMsi:$removeMsi
 
     New-StepAction -Label ('Office : {0} via ODT dans {1} (ID produit {2}), configuration.xml :' -f $edition.Name, $office.OdtFolder, $productId) -Details ($xml -split "`r`n") -Parameters @{
-        Kind = 'OdtInstall'; Xml = $xml; EditionKey = $key; ProductId = $productId
+        Kind = 'OdtInstall'; Xml = $xml; EditionKey = $key; ProductId = $productId; RemoveMsi = $removeMsi
     }
 } -Invoke {
     param($Action, $Context)
@@ -32,5 +34,9 @@ Register-Step -Id 'install-office' -Section 6 -Title 'Installation d''Office' -P
         throw ("ODT terminé, mais {0} absent de la configuration Click-to-Run (produits trouvés : {1})" -f $p.ProductId, $found)
     }
     Write-RunLog -Log $log -Message ('Office {0} installé ; activation à faire à la main' -f $p.ProductId)
+    if ($p.RemoveMsi -and (Get-InstalledOfficeKind).Msi) {
+        # Microsoft : le retrait MSI se termine au redémarrage, qui n'est pas imposé.
+        Write-RunLog -Log $log -Level ATTN -Message 'Office MSI encore inscrit sur le poste : son retrait se termine au redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications'
+    }
     [pscustomobject]@{ RebootRequired = $result.RebootRequired }
 }

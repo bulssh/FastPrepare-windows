@@ -43,6 +43,15 @@ Describe 'New-OdtInstallXml (XML universel du cahier)' {
         $xml.Configuration.Display.AcceptEULA | Should -Be 'TRUE'
         $text | Should -Not -Match 'Teams|PIDKEY|CompanyName'
     }
+    It 'langue de Windows avec une langue de repli (Fallback), comme le recommande Microsoft' {
+        $xml = [xml](New-OdtInstallXml -ProductId 'O365BusinessRetail' -Channel 'MonthlyEnterprise')
+        $xml.Configuration.Add.Product.Language.Fallback | Should -Be 'en-us'
+        ([xml](New-OdtInstallXml -ProductId 'X' -Channel 'Y' -Language 'fr-fr')).Configuration.Add.Product.Language.Fallback | Should -BeNullOrEmpty
+    }
+    It 'RemoveMSI seulement sur demande, au niveau de Configuration' {
+        ([xml](New-OdtInstallXml -ProductId 'X' -Channel 'Y')).Configuration.SelectSingleNode('RemoveMSI') | Should -BeNullOrEmpty
+        ([xml](New-OdtInstallXml -ProductId 'X' -Channel 'Y' -RemoveMsi)).Configuration.SelectSingleNode('RemoveMSI') | Should -Not -BeNullOrEmpty
+    }
     It 'échappe les caractères spéciaux (construit par System.Xml)' {
         { [xml](New-OdtInstallXml -ProductId 'A&B<C' -Channel 'X') } | Should -Not -Throw
     }

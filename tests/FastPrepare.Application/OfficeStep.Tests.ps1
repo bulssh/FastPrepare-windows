@@ -62,6 +62,9 @@ Describe 'Étape 7 en mode réel — Office via ODT' {
         Mock @m Remove-AppxEverywhere { [pscustomobject]@{ Installed = @(); Provisioned = @() } }
         Mock @m Stop-ProcessByName { 0 }
         Mock @m Get-OfficeClickToRunProduct { @('O365BusinessRetail') }
+        # Office présent avant la suppression, absent juste après, puis réinstallé.
+        $script:officeChecks = 0
+        Mock @m Get-InstalledOfficeKind { $script:officeChecks++; [pscustomobject]@{ ClickToRun = ($script:officeChecks -eq 1); Msi = $false } }
         $script:odtOrder = New-Object System.Collections.Generic.List[string]
         Mock @m Invoke-Odt { $script:odtOrder.Add($Name); [pscustomobject]@{ RebootRequired = $false } }
         $context = New-TestContext -Folder $TestDrive -Mode Real

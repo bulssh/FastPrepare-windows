@@ -15,7 +15,10 @@ Describe 'Mode réel — désinstallations' {
         Mock @m Remove-LocalAccountWithProfile { [pscustomobject]@{ AccountRemoved = $true; ProfileRemoved = $true; LeftoverFolder = $null } }
         Mock @m Initialize-OdtFolder { 'C:\ODT\setup.exe' }
         Mock @m Invoke-Odt { [pscustomobject]@{ RebootRequired = $false; ConfigurationPath = 'C:\ODT\c.xml' } }
-        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $true; Msi = $true } }
+        # Office présent avant ODT, absent après (contrôle qui suit la suppression).
+        $script:officeChecks = 0
+        Mock @m Get-InstalledOfficeKind { $script:officeChecks++; $present = $script:officeChecks -eq 1; [pscustomobject]@{ ClickToRun = $present; Msi = $present } }
+        Mock @m Get-OfficeClickToRunProduct { @() }
         Mock @m Remove-AppxEverywhere { [pscustomobject]@{ Installed = @('x'); Provisioned = @() } }
         Mock @m Get-MsiProductCodeByName { '{11111111-2222-3333-4444-555555555555}' }
         Mock @m Uninstall-MsiProduct { [pscustomobject]@{ RebootRequired = $false } }
@@ -62,6 +65,36 @@ Describe 'Mode réel — désinstallations' {
         Should -Invoke @m Initialize-OdtFolder -Times 0
         Should -Invoke @m Invoke-Odt -Times 0
         ([System.IO.File]::ReadAllText($context.Log.FilePath)) | Should -Match 'Office : déjà absent'
+    }
+
+    It 'Office Click-to-Run encore présent après ODT : échec explicite' {
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $true; Msi = $false } }
+        Mock @m Get-OfficeClickToRunProduct { @('O365BusinessRetail') }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeClickToRun = $true
+        $results = Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[0].Error | Should -Match 'encore présent \(O365BusinessRetail\)'
+    }
+
+    It 'Office MSI encore inscrit après ODT : réussite avec rappel du redémarrage (retrait MSI fini au redémarrage)' {
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $false; Msi = $true } }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeMsi = $true
+        $results = Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context
+        $results[0].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Invoke-Odt -Times 1 -ParameterFilter { $Xml -match 'RemoveMSI' -and $Xml -notmatch 'Remove All' }
+        ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'redémarrage final'
+    }
+
+    It 'Office MSI coché avec une installation d''Office : retrait confié à l''installation, pas de passage ODT à part' {
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeMsi = $true
+        $selection.Office.EditionKey = 'O365'
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        @($plan.Actions | Where-Object { $_.Parameters.Kind -eq 'OdtRemove' }).Count | Should -Be 0
+        @($plan.Actions | Where-Object { $_.Parameters.Kind -eq 'MsiWithInstall' }).Count | Should -Be 1
+        ($plan.Actions | Where-Object StepId -EQ 'install-office').Parameters.Xml | Should -Match '<RemoveMSI />'
     }
 
     It 'seul Office MSI présent, seule la suppression Click-to-Run demandée : rien à faire' {

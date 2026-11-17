@@ -42,7 +42,7 @@ Describe 'New-ExecutionPlan' {
         $plan = New-ExecutionPlan -Selection (New-FullSelection) -Snapshot (New-TestSnapshot) -Context $context
         $byStep = $plan.Actions | Group-Object StepId -AsHashTable
         $byStep['remove-local-accounts'].Count | Should -Be 1
-        $byStep['remove-microsoft-apps'].Count | Should -Be 7     # ODT + nouvel Outlook + OneNote + 4 Teams
+        $byStep['remove-microsoft-apps'].Count | Should -Be 8     # ODT + MSI confié à l'installation + nouvel Outlook + OneNote + 4 Teams
         $byStep['remove-onedrive'].Count | Should -Be 3
         $byStep['uninstall-software'].Count | Should -Be 2
         $byStep['install-vendor-utility'].Count | Should -Be 2    # .NET + DCU
@@ -64,16 +64,17 @@ Describe 'New-ExecutionPlan' {
         $uninstall[1].Interactive | Should -BeTrue
     }
 
-    It 'Office : un seul passage ODT de suppression, XML en détail, puis installation 365 sans Teams' {
+    It 'Office : suppression Click-to-Run, XML en détail, puis installation 365 sans Teams qui retire aussi les MSI' {
         $selection = New-FullSelection
         $selection.Office.WithoutTeams = $true
         $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
         $remove = $plan.Actions | Where-Object { $_.Parameters.Kind -eq 'OdtRemove' }
         @($remove).Count | Should -Be 1
         ($remove.Details -join "`n") | Should -Match 'Remove All="TRUE"'
-        ($remove.Details -join "`n") | Should -Match 'RemoveMSI'
+        ($remove.Details -join "`n") | Should -Not -Match 'RemoveMSI'
         $install = $plan.Actions | Where-Object StepId -EQ 'install-office'
         $install.Parameters.Xml | Should -Match 'O365BusinessEEANoTeamsRetail'
+        $install.Parameters.Xml | Should -Match '<RemoveMSI />'
     }
 
     It 'avertissements : Outlook classique seul, OneNote sans Click-to-Run' {
