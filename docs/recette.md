@@ -19,6 +19,7 @@ Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : _
 ### Section 0 — connexion
 - [ ] Pastille rouge puis verte en quelques secondes ; une seule ligne « Connexion internet validée ».
 - [ ] Câble/Wi-Fi coupé : pastille rouge, Lancer grisé « connexion internet non validée » ; rétabli : vert.
+- [ ] Coupure courte (moins de 60 s) : une ligne `INFO`, aucune `ERREUR` ; coupure longue : une seule `ERREUR` « Pas de connexion internet depuis N s », puis « Connexion internet rétablie après N s » (DEC28).
 
 ### Sections 1 à 10
 - [ ] 1 : champ grisé si décoché ; `123`, `PC_1`, 16 caractères → motif en rouge sous le champ, Lancer grisé ; `PC-01` → Lancer actif.
@@ -109,7 +110,8 @@ Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : _
 - [ ] Lenovo : Commercial Vantage installé depuis le Store ; Thin Installer installé silencieusement depuis le fichier préchargé (ligne « Fichier préchargé utilisé ») ; signature Lenovo acceptée.
 - [ ] HP, Fujitsu : outil installé par winget.
 - [ ] MàJ utilitaire (section 7) : outil trouvé, mise à jour lancée sans redémarrage automatique ; **noter le code de sortie** (journal, `[DEBUG]`) avec et sans mise à jour disponible, pour confirmer `SuccessExitCodes` / `RebootExitCodes` (QO4).
-- [ ] Noter le chemin réel de `HPImageAssistant.exe` et `ducmd.exe` après installation par winget.
+- [ ] Noter le chemin réel de `HPImageAssistant.exe` et `ducmd.exe` après installation par winget. *(17 novembre 2026, poste de test non HP : `C:\SWSetup\HPImageAssistant\HPImageAssistant.exe`, trouvé par l'outil ; mise à jour en échec, code 16386, expliqué au journal par `ExitCodeMessages` — attendu hors matériel HP. Reste à faire sur un vrai poste HP, et `ducmd.exe` sur un poste Fujitsu.)*
+- [ ] Code de sortie en échec : le journal en donne le sens quand `config.json` le connaît (`Update.ExitCodeMessages`, DEC29).
 
 ## Itération 6 — installation d'Office (poste de test)
 
@@ -292,12 +294,14 @@ La fenêtre n'a pas pu être affichée pendant le développement : cette recette
 - [ ] Fenêtre agrandie puis réduite : la carte se redessine à la nouvelle taille.
 - [ ] Pendant une exécution (Lancer) : la page reste utilisable ; après l'analyse, aucun fichier ni réglage du poste n'a changé.
 
-## Recette complète avant passage en mode réel par défaut (DEC6)
+## Recette complète sur postes de marque (DEC6)
+
+> **Mode réel par défaut depuis le 17 novembre 2026**, sur décision du propriétaire du projet, après les recettes en mode réel des 16 et 17 novembre sur un poste de test non constructeur (détail dans `docs/architecture_plan.md`). Les points ci-dessous restent à dérouler sur un poste de **chaque marque** ; `Lancer.cmd -Simulation` reste disponible pour un essai à blanc.
 
 Dérouler, sur un poste de test réinitialisé de **chaque marque**, une exécution réelle **complète** (toutes les sections utiles cochées), puis :
 
-- [ ] Rapport final sans échec inattendu ; échecs attendus compris et documentés.
+- [x] Rapport final sans échec inattendu ; échecs attendus compris et documentés. *(poste de test non constructeur, 16 et 17 novembre 2026 : seul échec, la mise à jour HP hors matériel HP)*
 - [ ] Après redémarrage manuel : Office installé et non activé, utilitaire constructeur présent, aucune application Microsoft retirée ne revient pour un nouveau profil.
 - [ ] Deuxième exécution sur le même poste : tout est « déjà fait / déjà absent », aucune erreur.
 - [ ] Valeurs provisoires confirmées ou corrigées dans `config.json` : codes de sortie winget et outils constructeurs (QO4), chemins `HPImageAssistant.exe` / `ducmd.exe`, lien et empreinte de Thin Installer.
-- [ ] Alors seulement : `Execution.DefaultMode` = `"Real"` dans `config.json`.
+- [x] `Execution.DefaultMode` = `"Real"` dans `config.json` (17 novembre 2026).

@@ -77,9 +77,10 @@ Ces actions restent **à la main**, et l'outil les rappelle dans son rapport fin
 
 ## Garanties
 
-- **Simulation par défaut.** L'outil s'ouvre en simulation : il déroule tout le parcours et écrit au
-  journal ce qu'il ferait, sans rien modifier. Le mode réel se demande explicitement, s'affiche dans
-  un bandeau rouge et se confirme avant l'exécution.
+- **Rien ne part sans confirmation.** L'outil s'ouvre en mode réel, signalé par un bandeau rouge ;
+  rien n'est modifié avant le clic sur **Lancer**, suivi d'une confirmation. Pour un essai à blanc,
+  `Lancer.cmd -Simulation` déroule tout le parcours et écrit au journal ce qu'il ferait, sans rien
+  modifier.
 - **Jamais de redémarrage automatique**, ni par l'outil ni par un installateur.
 - **Aucun mot de passe écrit.** Ceux des sessions locales et du compte de jonction sont saisis à
   chaque préparation ; ils ne vont ni sur la clé, ni dans un profil, ni dans le journal.
@@ -136,9 +137,9 @@ winget, placer au préalable `Microsoft.DesktopAppInstaller.msixbundle` dans `pa
 
 | Commande | Effet |
 |---|---|
-| `Lancer.cmd` | Mode défini dans `config.json` (simulation tant qu'il n'a pas été changé) |
-| `Lancer.cmd -Simulation` | Force la simulation |
-| `Lancer.cmd -Real` | Modifie le poste, après confirmation |
+| `Lancer.cmd` | Mode défini dans `config.json` : réel, après confirmation |
+| `Lancer.cmd -Simulation` | Force la simulation : rien n'est modifié |
+| `Lancer.cmd -Real` | Force le mode réel, quel que soit `config.json` |
 
 Si la clé est protégée en écriture, le journal est écrit dans `%TEMP%\FastPrepare`, puis recopié sur
 la clé en fin d'exécution si elle est redevenue accessible.
@@ -198,11 +199,14 @@ vivent dans la configuration, jamais dans le code.
   fenêtre. Les actions qui modifient un poste y sont testées avec des simulacres.
 - **Vérifié à l'écran** sur un poste de test : le parcours complet en simulation, les profils, le
   catalogue, l'analyse de disque.
-- **Recette en mode réel** : en cours. Tant qu'elle n'est pas terminée
-  ([`docs/recette.md`](docs/recette.md)), le mode par défaut reste la simulation.
+- **Recette en mode réel** : faite les 16 et 17 novembre 2026 sur un poste et un domaine de test
+  (détail dans [`docs/architecture_plan.md`](docs/architecture_plan.md#recette-en-mode-réel-du-17-novembre-2026)) :
+  retraits et installations d'Office, programmes Microsoft, OneDrive, logiciels, utilitaire HP,
+  Windows Update, IPv6, alimentation, création et suppression de sessions, lecteur réseau,
+  imprimante IP, jonction au domaine. Le mode par défaut est désormais le **mode réel**.
 - **À confirmer avec du matériel et des consoles réels** : options silencieuses des agents RMM et
-  des antivirus, codes de sortie des utilitaires constructeur, lien du Thin Installer de Lenovo
-  (vide dans `config.json`).
+  des antivirus, codes de sortie des utilitaires constructeur sur des postes de chaque marque, lien
+  du Thin Installer de Lenovo (vide dans `config.json`).
 
 ## Développement
 

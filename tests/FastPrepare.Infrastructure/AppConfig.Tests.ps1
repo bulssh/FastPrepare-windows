@@ -97,6 +97,19 @@ Describe 'Assert-AppConfig' {
         Get-ConfigError $config | Should -Match 'RebootExitCodes : entiers attendus'
     }
 
+    It 'ExitCodeMessages : facultatif ; noms entiers et textes exigés' {
+        $config = Get-TestConfig
+        $config.Utilities.hp.Update.ExitCodeMessages.'16386' | Should -Not -BeNullOrEmpty
+        $config.Utilities.hp.Update.PSObject.Properties.Remove('ExitCodeMessages')
+        { Assert-AppConfig -Config $config } | Should -Not -Throw
+        $config = Get-TestConfig
+        $config.Utilities.hp.Update.ExitCodeMessages | Add-Member -NotePropertyName 'seize' -NotePropertyValue 'texte'
+        Get-ConfigError $config | Should -Match 'ExitCodeMessages.seize : nom entier attendu'
+        $config = Get-TestConfig
+        $config.Utilities.hp.Update.ExitCodeMessages.'16386' = ' '
+        Get-ConfigError $config | Should -Match 'ExitCodeMessages.16386 : texte attendu'
+    }
+
     It 'motif de constructeur invalide : erreur' {
         $config = Get-TestConfig
         $config.Utilities.hp.ManufacturerPattern = 'HP('

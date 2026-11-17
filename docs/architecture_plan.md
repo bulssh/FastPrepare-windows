@@ -115,7 +115,7 @@ Le fichier reste **unique et à la racine** (contrat du cahier, et le technicien
 
 | # | Changement | Raison |
 |---|---|---|
-| C1 | `ConfigVersion: 2` en tête ; regroupement de `InternetTest*` sous `Connectivity` (`TestUrl`, `Expected`, `IntervalSeconds`, `TimeoutSeconds`, `RetrySeconds`). | Validation au démarrage (`Assert-AppConfig`) ; fin des constantes magiques (D11). |
+| C1 | `ConfigVersion: 2` en tête ; regroupement de `InternetTest*` sous `Connectivity` (`TestUrl`, `Expected`, `IntervalSeconds`, `TimeoutSeconds`, `RetrySeconds` ; `GraceSeconds` ajouté le 17 novembre 2026, DEC28). | Validation au démarrage (`Assert-AppConfig`) ; fin des constantes magiques (D11). |
 | C2 | `Utilities.<clé>` : ajout de `Label`, `Subtitle`, `Logo`, `ManufacturerPattern` (expression régulière sur `Win32_ComputerSystem.Manufacturer`) ; `WingetId`/`WingetSource`/`ThinInstallerUrl` remplacés par une liste **`Install`** d'éléments `{ Type: "winget", Id, Source }` ou `{ Type: "download", Url, Sha256, FileName, Arguments, ExpectedSigner }`. | Cards générées (D3) ; Lenovo à deux outils (E6) ; un téléchargement direct est vérifié avant d'être lancé (§7). |
 | C3 | `UpdateCommand` (chaîne) remplacé par **`Update`** `{ FilePath, Arguments, SuccessExitCodes }`. `FilePath` accepte les variables `%ProgramFiles%`, `%ProgramFiles(x86)%`, `%OdtFolder%`, résolues par une fonction unique. | Plus de chaîne shell (D9) ; codes de sortie « succès avec redémarrage requis » propres à chaque outil (DCU renvoie 1 ou 5 selon les cas). |
 | C4 | `Utilities.dell.DotNet[]` : `{ DcuVersion, WingetId, MinVersion, MaxVersion }`. | Plages du cahier (E5). |
@@ -1061,6 +1061,30 @@ Première exécution réelle complète, sur un poste de test Windows 11 et un do
 - **Défaut corrigé** — suppression d'Office sur un poste sans Office : l'outil de déploiement d'Office échoue (code de sortie -1) au lieu de répondre « rien à retirer ». `Get-InstalledOfficeKind` (`Infrastructure/System/Odt.ps1`) détecte Office Click-to-Run et Office MSI ; l'étape `remove-microsoft-apps` n'appelle l'outil de déploiement que si ce qui est demandé est installé, sinon elle note « déjà absent ». Revérifié en mode réel sur le poste restauré.
 - **Non couvert par cette recette** : Windows Update, installation et suppression d'un Office présent, utilitaires constructeur (pas de matériel de marque), agent RMM et antivirus (pas de lien de console), désinstallation de logiciels et suppression de sessions (rien à retirer sur ce poste), affichage du lecteur réseau à l'ouverture de session suivante, compte sans droit de jonction.
 
+### Recette en mode réel du 17 novembre 2026
+
+Fonctions non couvertes le 16 novembre, sur le même poste de test, à partir d'un instantané restauré ensuite. Deux exécutions : la première installe ce que la seconde retire. RMM et antivirus restent hors recette (pas de lien de console). Aucun redémarrage automatique.
+
+| Exécution | Fonction | Résultat constaté sur le poste |
+|---|---|---|
+| A (18 actions, 17 réussies) | Retrait d'Office sur un poste sans Office | « déjà absent », sans appel à l'outil de déploiement (correctif du 16 novembre confirmé) |
+| A | Utilitaire HP (winget) | installé dans `C:\SWSetup\HPImageAssistant\` |
+| A | Office 365 Apps for Business (ODT) | installé, `O365BusinessRetail`, Word présent |
+| A | 7-Zip, IPv6, alimentation | installé ; IPv6 désactivé sur les deux cartes ; écran 300 s, veille 900 s sur secteur et batterie |
+| A | Mise à jour par l'utilitaire HP | **échec attendu**, code 16386 : le poste n'est pas un matériel HP |
+| A | Windows Update | une mise à jour trouvée, téléchargée et installée, sans redémarrage |
+| A | Session locale | créée, membre du groupe Utilisateurs, mot de passe qui n'expire jamais |
+| B (13 actions, 12 réussies) | Suppression d'une session **avec son profil** | compte, dossier `C:\Users\<nom>` et entrée `ProfileList` supprimés |
+| B | Retrait d'un Office présent | ODT code 0 en 230 s ; plus de produit Click-to-Run ni de Word |
+| B | Programmes Microsoft, OneDrive (réinstallé par Office) | retirés |
+| B | Désinstallation d'un logiciel (7-Zip, MSI) | `msiexec /x … /qn /norestart`, code 0 ; dossier et entrée de désinstallation absents |
+| B | Utilitaire HP déjà présent, puis mise à jour | winget code 0 ; mise à jour en échec, **désormais expliquée** au journal (DEC29) |
+| après B | Coupure d'internet de 20 s puis de 90 s | 20 s : une ligne `INFO`, aucune erreur ; 90 s : une seule `ERREUR` à 64 s, puis « rétablie après 91 s » (DEC28) |
+
+- **Défauts corrigés** : coupures courtes d'internet écrites en `ERREUR` au démarrage ou à la reprise d'une mise en veille (DEC28) ; code de sortie de l'utilitaire constructeur donné sans explication (DEC29) ; libellé de la case Alimentation coupé dans une fenêtre étroite (il revient à la ligne).
+- **Conclusion** : avec la recette du 16 novembre, toutes les étapes ont tourné en mode réel sauf l'agent RMM et l'antivirus. **Le mode par défaut passe en réel** (DEC6).
+- **Reste à confirmer sur du matériel et des consoles réels** : codes de sortie des utilitaires sur des postes Dell, HP, Lenovo et Fujitsu (QO4) ; options silencieuses des agents RMM et des antivirus ; affichage du lecteur réseau à l'ouverture de session suivante.
+
 ### Vérification des itérations 13 à 18
 
 - `Start-MainWindow` est scindée : `New-MainWindow` construit la fenêtre sans l'afficher. `tests/FastPrepare.UI/UiBuild.Tests.ps1` (Windows uniquement) construit ainsi toute l'interface, affiche chaque page et fait faire l'aller-retour à un profil.
@@ -1168,7 +1192,7 @@ Une règle qui change le **contrat** (format du journal, ordre d'exécution du c
 | DEC3 | Arrière-plan : `Start-Job`, `ThreadJob`, runspace ? | **Runspace.** `Start-Job` lance un processus par tâche (lent, sérialise tout) ; `ThreadJob` n'est pas fourni avec Windows PowerShell 5.1. Un runspace est natif et partage la file de messages. | 1 |
 | DEC4 | XAML : un seul fichier ou un fragment par section ? | **Un fragment par section** + `Theme.xaml` fusionné dans les ressources de l'objet `Application` créé au démarrage, pour que les `StaticResource` des fragments se résolvent. | 0 |
 | DEC5 | Tests : quelle version de Pester ? | **Pester 5** sur le poste de développement uniquement ; jamais requis sur la clé. Windows 11 embarque Pester 3.4, dont la syntaxe est incompatible. | 0 |
-| DEC6 | Mode par défaut. | **Simulation** jusqu'à la fin de l'itération 7 et de la recette complète ; puis `Execution.DefaultMode = "Real"`, la simulation restant disponible par `Lancer.cmd -Simulation`. | 7 |
+| DEC6 | Mode par défaut. | **Simulation** jusqu'à la fin de l'itération 7 et de la recette complète ; puis `Execution.DefaultMode = "Real"`, la simulation restant disponible par `Lancer.cmd -Simulation`. **Appliquée le 17 novembre 2026**, après les recettes en mode réel des 16 et 17 novembre : le mode par défaut est **réel**. | 7 |
 | DEC7 | Une configuration ou plusieurs (une par marque, un catalogue logiciel…) ? | **Un seul `config.json` à la racine** (contrat du cahier, un seul fichier à relire quand une version change). À reconsidérer au-delà d'une dizaine de marques ou de logiciels. | 0 |
 | DEC8 | Exécution d'une `UninstallString` non analysable. | Découpage par `Split-CommandLine` ; en cas d'échec, `cmd.exe /c` **tracé en `ATTN`**, jamais `Invoke-Expression`. Ces lignes viennent du registre du poste, écrites par des installateurs : leur forme n'est pas maîtrisée. | 4 |
 | DEC9 | Alimentation : secteur et batterie, ou secteur seulement (point en attente du cahier) ? | **Paramètre `Power.ApplyOnBattery`, `true` par défaut** (comportement actuel). La réponse du cahier changera une valeur, pas le code. | 3 |
@@ -1190,6 +1214,8 @@ Une règle qui change le **contrat** (format du journal, ordre d'exécution du c
 | DEC25 | Comment connecter un lecteur réseau à l'utilisateur alors que l'outil tourne avec des droits élevés, parfois sous un autre compte ? | **En écrivant le mappage persistant dans la ruche de l'utilisateur de la session ouverte** (`HKU\<SID>\Network\<lettre>`), c'est-à-dire exactement ce que `net use /persistent:yes` y écrit quand un technicien le fait à la main dans la session. Windows reconnecte le lecteur à l'ouverture de session suivante (le redémarrage final est de toute façon manuel). **Aucun script de connexion, aucune tâche planifiée, aucun fichier laissé sur le poste.** Aucun identifiant n'est enregistré : le lecteur s'ouvre avec le compte de l'utilisateur. |
 | DEC26 | Quand joindre le poste au domaine, et faut-il redémarrer ? | **En toute dernière action, sans redémarrage.** Toute la préparation se fait avec les comptes locaux ; la jonction (`Add-Computer`) n'est effective qu'au redémarrage final, que le technicien fait à la main comme tous les redémarrages. Le renommage du poste doit avoir été fait avant l'outil (DEC22) : le poste rejoint le domaine sous son nom définitif. Le mot de passe du compte de jonction est saisi à chaque préparation et n'est écrit nulle part. |
 | DEC27 | Où enregistrer les réglages d'un client, et qu'y met-on ? | **Un fichier par client dans `profils\` sur la clé, écrit par l'outil** (Enregistrer / Nouveau), distinct de `config.json` qui décrit l'outil et reste écrit à la main (DEC17). **Jamais de mot de passe** : ni celui des sessions locales, ni celui du compte de jonction ; ils sont saisis à chaque préparation. La garantie est structurelle (liste blanche de champs à l'écriture et à la lecture), pas une convention. Les liens RMM et antivirus, propres au client, y sont enregistrés : la clé doit donc être gardée comme un support interne. |
+| DEC28 | Une coupure d'internet est-elle toujours une erreur au journal ? | **Non : seulement si elle dure plus de `Connectivity.GraceSeconds` (60 s).** Constaté en recette : au démarrage du poste ou à la reprise après une mise en veille, la connexion met quelques secondes à revenir (5 et 25 s), ce qui écrivait une `ERREUR` trompeuse au rapport. Le début d'une coupure est noté en `INFO` ; au-delà du délai, une seule `ERREUR` « Pas de connexion internet depuis N s », pendant l'exécution comme avant ; au retour, « Connexion internet rétablie après N s ». La pastille passe au rouge et Lancer se grise dès le premier échec : on ne lance rien sans connexion. Règle pure `Get-ConnectivityLogEntry` (Core), testée sans réseau. |
+| DEC29 | Code de sortie d'un utilitaire constructeur en échec : comment l'expliquer au technicien ? | **Par une table propre à chaque utilitaire dans `config.json`** (`Utilities.<clé>.Update.ExitCodeMessages`, facultative), passée à `Invoke-ExternalProcess` et prioritaire sur les codes Windows Installer connus. On n'y met que des codes relevés dans la documentation de l'éditeur, jamais un sens deviné. Seul HP Image Assistant en a une pour l'instant (constaté en recette : code 16386 sur un matériel non HP). |
 
 **Questions ouvertes** (à trancher avec le cahier des charges avant l'itération concernée) :
 
@@ -1200,4 +1226,4 @@ Une règle qui change le **contrat** (format du journal, ordre d'exécution du c
 | QO3 | Windows Update : une passe suffit-elle si une mise à jour en exige une autre (pile de maintenance) ? Le cahier dit « une passe complète » : on journalise « des mises à jour restent disponibles » sans relancer. **Appliqué ainsi** (itération 7). | 7 |
 | QO5 | Session créée : faut-il aussi la configurer en ouverture automatique, ou créer son profil d'avance ? **Non pour l'instant** (aucun besoin exprimé ; l'ouverture automatique stocke le mot de passe dans le registre). | 8 |
 | QO6 | Catalogue logiciel : faut-il partager un même catalogue entre plusieurs clés (dossier réseau, dépôt) ou un catalogue par clé suffit-il ? **Un par clé pour l'instant** ; `Build-Usb.ps1` copie celui du dépôt. Attention : `Build-Usb` remplace le `software.json` de la clé par celui du dépôt — un catalogue modifié sur la clé doit d'abord être recopié dans le dépôt. | 9 |
-| QO4 | Préciser les codes de sortie de chaque outil constructeur considérés comme succès (`Update.SuccessExitCodes`) ou comme redémarrage nécessaire (`Update.RebootExitCodes`). **Valeurs provisoires dans `config.json`** (itération 5), à confirmer en recette. | 5 |
+| QO4 | Préciser les codes de sortie de chaque outil constructeur considérés comme succès (`Update.SuccessExitCodes`) ou comme redémarrage nécessaire (`Update.RebootExitCodes`). **Valeurs provisoires dans `config.json`** (itération 5), à confirmer en recette. Recette du 17 novembre 2026 : HP Image Assistant s'installe par winget dans `C:\SWSetup\HPImageAssistant\` et renvoie 16386 sur un matériel non HP (DEC29) ; les codes de succès restent à confirmer **sur de vrais postes de chaque marque**. | 5 |

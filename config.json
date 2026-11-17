@@ -2,7 +2,7 @@
   "ConfigVersion": 3,
 
   "Execution": {
-    "DefaultMode": "Simulation",
+    "DefaultMode": "Real",
     "CacheFolder": "%ProgramData%\\FastPrepare\\cache"
   },
 
@@ -15,7 +15,8 @@
     "Expected": "Microsoft Connect Test",
     "IntervalSeconds": 5,
     "TimeoutSeconds": 4,
-    "RetrySeconds": 5
+    "RetrySeconds": 5,
+    "GraceSeconds": 60
   },
 
   "Winget": {
@@ -61,7 +62,19 @@
         "FilePath": "HPImageAssistant.exe",
         "Arguments": "/Operation:Analyze /Action:Install /Silent",
         "SuccessExitCodes": [0, 256, 257],
-        "RebootExitCodes": [3010]
+        "RebootExitCodes": [3010],
+        "ExitCodeMessages": {
+          "3020": "échec de l'installation d'une ou plusieurs SoftPaq",
+          "4096": "plateforme non prise en charge par HP Image Assistant",
+          "4097": "paramètres invalides",
+          "4098": "pas de connexion internet",
+          "4104": "aucun système d'exploitation pris en charge pour ce poste",
+          "8192": "opération en échec",
+          "8199": "échec du téléchargement d'une SoftPaq",
+          "16384": "fichier de référence HP illisible",
+          "16385": "fichier de référence HP invalide",
+          "16386": "fichier de référence HP non pris en charge pour cette version de Windows"
+        }
       }
     },
     "lenovo": {

@@ -73,6 +73,8 @@ function Assert-AppConfig {
         foreach ($name in 'IntervalSeconds', 'TimeoutSeconds', 'RetrySeconds') {
             [void](Test-ConfigField $report $c $name 'Connectivity' PositiveInt)
         }
+        # Délai de grâce avant d'écrire une coupure en ERREUR (DEC28) ; 60 s s'il est absent.
+        [void](Test-ConfigField $report $c 'GraceSeconds' 'Connectivity' PositiveInt -Optional)
     }
 
     # Winget
@@ -193,6 +195,14 @@ function Test-UtilityConfig {
                 foreach ($code in @($Utility.Update.($codes.Name))) {
                     if (-not (($code -is [int]) -or ($code -is [long]))) { $Report.Errors.Add("$Path.Update.$($codes.Name) : entiers attendus") }
                 }
+            }
+        }
+        # Sens des codes de sortie propres à l'outil, écrit au journal en cas d'échec (facultatif).
+        if (Test-ConfigField $Report $Utility.Update 'ExitCodeMessages' "$Path.Update" Object -Optional) {
+            foreach ($entry in $Utility.Update.ExitCodeMessages.PSObject.Properties) {
+                $number = 0
+                if (-not [int]::TryParse($entry.Name, [ref]$number)) { $Report.Errors.Add("$Path.Update.ExitCodeMessages.$($entry.Name) : nom entier attendu") }
+                if (-not ($entry.Value -is [string]) -or -not $entry.Value.Trim()) { $Report.Errors.Add("$Path.Update.ExitCodeMessages.$($entry.Name) : texte attendu") }
             }
         }
     }
