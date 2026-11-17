@@ -32,6 +32,8 @@ function Invoke-ExternalProcess {
         [int[]]$RebootExitCode = @(3010, 1641),
         [switch]$CaptureOutput,
         [switch]$Interactive,
+        # Sens des codes propres à l'outil (clé : code entier), prioritaire sur les codes MSI connus.
+        [hashtable]$ExitCodeMessage = @{},
         $Log
     )
 
@@ -82,7 +84,7 @@ function Invoke-ExternalProcess {
 
     $reboot = $RebootExitCode -contains $exitCode
     if (-not $reboot -and $SuccessExitCode -notcontains $exitCode) {
-        $meaning = $script:KnownExitCodes[$exitCode]
+        $meaning = if ($ExitCodeMessage.ContainsKey($exitCode)) { $ExitCodeMessage[$exitCode] } else { $script:KnownExitCodes[$exitCode] }
         $detail = if ($meaning) { " ($meaning)" } else { '' }
         throw ('« {0} » : code de sortie {1}{2}' -f [System.IO.Path]::GetFileName($FilePath), $exitCode, $detail)
     }

@@ -16,6 +16,15 @@ Describe 'Invoke-ExternalProcess (commandes inoffensives)' {
     It 'code inattendu : erreur avec la signification connue' {
         { Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 1603' -TimeoutMinutes 1 } | Should -Throw '*code de sortie 1603 (erreur fatale*'
     }
+    It 'sens propre à l''outil (-ExitCodeMessage), prioritaire sur les codes MSI' {
+        { Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 16386' -ExitCodeMessage @{ 16386 = 'fichier de référence non pris en charge' } -TimeoutMinutes 1 } |
+            Should -Throw '*code de sortie 16386 (fichier de référence non pris en charge)'
+        { Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 1603' -ExitCodeMessage @{ 1603 = 'sens de l''outil' } -TimeoutMinutes 1 } |
+            Should -Throw '*code de sortie 1603 (sens de l''outil)'
+    }
+    It 'code inconnu, même avec une table : pas de détail' {
+        { Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 7' -ExitCodeMessage @{ 16386 = 'x' } -TimeoutMinutes 1 } | Should -Throw '*code de sortie 7'
+    }
     It 'codes de succès propres à l''outil (-SuccessExitCode)' {
         (Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 5' -SuccessExitCode 0, 5 -TimeoutMinutes 1).ExitCode | Should -Be 5
     }

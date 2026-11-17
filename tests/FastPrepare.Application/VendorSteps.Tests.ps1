@@ -158,6 +158,18 @@ Describe 'Étape 11 en mode réel — mise à jour par l''utilitaire' {
             $ArgumentList -eq '/applyUpdates -reboot=disable' -and (@($SuccessExitCode) -join ',') -eq '0,500' -and (@($RebootExitCode) -join ',') -eq '1,5'
         }
     }
+    It 'sens des codes de sortie de config.json transmis à Invoke-ExternalProcess (HP)' {
+        Mock @m Find-InstalledExecutable { 'C:\SWSetup\HPImageAssistant\HPImageAssistant.exe' }
+        [void](Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real) 'hp' -Update)
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter {
+            $ExitCodeMessage.ContainsKey(16386) -and $ExitCodeMessage[16386] -match 'fichier de référence' -and $WorkingDirectory -eq 'C:\SWSetup\HPImageAssistant'
+        }
+    }
+    It 'utilitaire sans table de codes : table vide transmise' {
+        $context = New-TestContext -Folder $TestDrive -Mode Real
+        [void](Invoke-Vendor $context 'dell' -Update)
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $ExitCodeMessage.Count -eq 0 }
+    }
     It 'outil introuvable : échec explicite' {
         Mock @m Find-InstalledExecutable { throw 'Outil « HPImageAssistant.exe » introuvable' }
         $results = Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real) 'hp' -Update

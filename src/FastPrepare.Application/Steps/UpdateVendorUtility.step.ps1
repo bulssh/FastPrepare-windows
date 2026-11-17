@@ -13,8 +13,13 @@ Register-Step -Id 'update-vendor-utility' -Section 7 -Title 'Mise à jour par l'
     $update = $Context.Config.Utilities.($Action.Parameters.UtilityKey).Update
     $path = Find-InstalledExecutable -Path (Expand-ConfigPath -Path ([string]$update.FilePath) -Variables $Context.Paths.Variables)
     $rebootCodes = if ($update.PSObject.Properties['RebootExitCodes']) { [int[]]@($update.RebootExitCodes) } else { [int[]]@(3010, 1641) }
+    # Sens des codes de sortie de l'outil (config.json), clé entière pour Invoke-ExternalProcess.
+    $messages = @{}
+    if ($update.PSObject.Properties['ExitCodeMessages'] -and $update.ExitCodeMessages) {
+        foreach ($entry in $update.ExitCodeMessages.PSObject.Properties) { $messages[[int]$entry.Name] = [string]$entry.Value }
+    }
     # Pilotes et BIOS : peut être long ; jamais de redémarrage automatique (arguments de config.json).
     $result = Invoke-ExternalProcess -FilePath $path -ArgumentList ([string]$update.Arguments) -SuccessExitCode ([int[]]@($update.SuccessExitCodes)) -RebootExitCode $rebootCodes `
-        -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 180 -Log $Context.Log
+        -ExitCodeMessage $messages -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 180 -Log $Context.Log
     [pscustomobject]@{ RebootRequired = $result.RebootRequired }
 }
