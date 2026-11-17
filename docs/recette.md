@@ -98,7 +98,7 @@ Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : _
 
 ## Itération 5 — utilitaire constructeur (poste de test de chaque marque)
 
-> Lien de Thin Installer renseigné le 17 novembre 2026 (lien officiel de Lenovo, sans empreinte publiée). Le laboratoire de test n'a pas de poste de marque : cette partie se vérifie lors des premières préparations réelles. Mise à jour Lenovo : voir QO7 (dépôt Update Retriever).
+> Lenovo : Commercial Vantage, paquet Enterprise (DEC31, lien officiel dans `config.json`). Le laboratoire de test n'a pas de poste de marque : cette partie se vérifie lors des premières préparations réelles.
 
 Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : __________
 
@@ -107,7 +107,8 @@ Poste : ____________________ · Date : __________ · Version (`VERSION.txt`) : _
 - [ ] Dell, DCU 5.7.0 : runtime .NET Desktop 8.0.25 installé avant DCU (si aucun 8.0.8–8.0.25 présent) ; DCU démarre.
 - [ ] Dell, DCU 5.7.1 (quand winget la propose) : runtime .NET 10 (≥ 10.0.8).
 - [ ] Dell avec un .NET 8 plus récent que 8.0.25 déjà présent : avertissement dans le journal.
-- [ ] Lenovo : Commercial Vantage installé depuis le Store ; Thin Installer installé silencieusement depuis le fichier préchargé (ligne « Fichier préchargé utilisé ») ; signature Lenovo acceptée.
+- [ ] Lenovo : paquet Enterprise de Commercial Vantage (≈ 657 Mo) préchargé dès le choix de la carte (ligne « Fichier préchargé utilisé »), extrait, `VantageInstaller.exe` accepté (signature Lenovo), Commercial Vantage et `C:\Program Files\Lenovo\SUHelper\suhelper.exe` présents.
+- [ ] Lenovo, MàJ utilitaire : `suhelper.exe` code 0, rappel « en arrière-plan » au journal, mises à jour visibles dans Commercial Vantage ; aucun redémarrage automatique (paquets de types 1 et 4 exclus).
 - [ ] HP, Fujitsu : outil installé par winget.
 - [ ] MàJ utilitaire (section 7) : outil trouvé, mise à jour lancée sans redémarrage automatique ; **noter le code de sortie** (journal, `[DEBUG]`) avec et sans mise à jour disponible, pour confirmer `SuccessExitCodes` / `RebootExitCodes` (QO4).
 - [ ] Noter le chemin réel de `HPImageAssistant.exe` et `ducmd.exe` après installation par winget. *(17 novembre 2026, poste de test non HP : `C:\SWSetup\HPImageAssistant\HPImageAssistant.exe`, trouvé par l'outil ; mise à jour en échec, code 16386, expliqué au journal par `ExitCodeMessages` — attendu hors matériel HP. Reste à faire sur un vrai poste HP, et `ducmd.exe` sur un poste Fujitsu.)*
@@ -304,5 +305,5 @@ Dérouler, sur un poste de test réinitialisé de **chaque marque**, une exécut
 - [x] Rapport final sans échec inattendu ; échecs attendus compris et documentés. *(poste de test non constructeur, 16 et 17 novembre 2026 : seul échec, la mise à jour HP hors matériel HP)*
 - [ ] Après redémarrage manuel : Office installé et non activé, utilitaire constructeur présent, aucune application Microsoft retirée ne revient pour un nouveau profil.
 - [ ] Deuxième exécution sur le même poste : tout est « déjà fait / déjà absent », aucune erreur.
-- [ ] Valeurs provisoires confirmées ou corrigées dans `config.json` : codes de sortie winget et outils constructeurs (QO4), chemins `HPImageAssistant.exe` / `ducmd.exe`, lien et empreinte de Thin Installer.
+- [ ] Valeurs provisoires confirmées ou corrigées dans `config.json` : codes de sortie winget et outils constructeurs (QO4), chemins `HPImageAssistant.exe` / `ducmd.exe`, paquet Enterprise de Commercial Vantage (Lenovo).
 - [x] `Execution.DefaultMode` = `"Real"` dans `config.json` (17 novembre 2026).

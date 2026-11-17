@@ -207,8 +207,9 @@ vivent dans la configuration, jamais dans le code.
   imprimante IP, jonction au domaine. Le mode par défaut est désormais le **mode réel**.
 - **Non vérifiable dans le laboratoire de test** (ni poste de marque, ni console RMM, ni antivirus) :
   options silencieuses des agents RMM et des antivirus, codes de sortie et chemins des utilitaires
-  constructeur sur des postes de chaque marque, installation de Thin Installer (lien officiel de
-  Lenovo renseigné, signature Lenovo exigée). À confirmer lors des premières préparations réelles.
+  constructeur sur des postes de chaque marque, installation et mise à jour Lenovo par Commercial
+  Vantage (paquet Enterprise officiel, signature Lenovo exigée). À confirmer lors des premières
+  préparations réelles.
 
 ## Développement
 

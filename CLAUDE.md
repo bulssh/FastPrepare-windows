@@ -2,7 +2,7 @@
 
 Ce fichier est lu au début de chaque session Claude Code. Il résume tout ce qu'il faut savoir pour
 continuer le projet sans l'historique des conversations précédentes. Les détails sont dans
-`docs/architecture_plan.md` (plan, décisions DEC1 à DEC30, journal des itérations), `docs/recette.md`
+`docs/architecture_plan.md` (plan, décisions DEC1 à DEC31, journal des itérations), `docs/recette.md`
 (recettes manuelles) et `docs/CONTRIBUTING.md` (règles de code). En cas de doute, ces documents font foi.
 
 ## Le projet
@@ -106,17 +106,17 @@ Fait au 17 novembre 2026 : vérification dans la VM, sécurisation, recette d'af
 analyse de disque (itération 19), recettes en mode réel des 16 et 17 novembre (toutes les étapes sauf
 RMM et antivirus), passage du mode par défaut en réel, `actions/checkout` en v5.
 
-Aussi au 17 novembre 2026 : lien officiel de Thin Installer renseigné, option `SessionOnly` du
+Aussi au 17 novembre 2026 : Lenovo par Commercial Vantage, paquet Enterprise (DEC31, Thin Installer
+abandonné), option `SessionOnly` du
 catalogue et Claude retiré (DEC30), branches GitHub inutiles supprimées (seule `main` reste),
 cahier des charges et maquette (artefacts claude.ai de Yanis) mis à jour jusqu'à DEC30.
 
 Le laboratoire de Yanis n'a **ni poste de marque, ni console RMM, ni antivirus** : ces points ne
 peuvent pas être vérifiés avant les premières préparations réelles.
 
-1. QO7 à trancher par Yanis : mise à jour Lenovo par Thin Installer (demande un dépôt Update
-   Retriever) ou par Commercial Vantage.
-2. Premières préparations réelles : relever au journal les codes de sortie des utilitaires (QO4), le
-   chemin de `ducmd.exe`, les options silencieuses RMM et antivirus.
+1. Premières préparations réelles : relever au journal les codes de sortie des utilitaires (QO4), le
+   chemin de `ducmd.exe`, les options silencieuses RMM et antivirus, l'installation et la mise à jour
+   Lenovo (DEC31 : SU Helper ne fait que lancer la session, qui continue en arrière-plan).
 
 ## Commits
 
