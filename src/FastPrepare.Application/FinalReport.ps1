@@ -17,14 +17,19 @@ function Write-FinalReport {
     $failed = @($results | Where-Object { $_.Outcome -eq 'Failed' })
     $skipped = @($results | Where-Object { $_.Outcome -eq 'Skipped' })
     $succeeded = @($results | Where-Object { $_.Outcome -eq 'Succeeded' })
+    $launched = @($results | Where-Object { $_.Outcome -eq 'Launched' })
 
     if ($Context.Mode -eq 'Simulation') {
         Write-RunLog -Log $log -Level OK -Message ('Rapport final — simulation terminée : {0} action(s) prévue(s), aucune modification du poste.' -f $results.Count)
     } else {
-        $level = if ($failed.Count -gt 0) { 'ATTN' } else { 'OK' }
+        $level = if ($failed.Count -gt 0 -or $launched.Count -gt 0) { 'ATTN' } else { 'OK' }
         $summary = 'Rapport final — {0} action(s) réussie(s), {1} en échec' -f $succeeded.Count, $failed.Count
+        if ($launched.Count -gt 0) { $summary += (', {0} lancée(s) sans suivi de fin' -f $launched.Count) }
         if ($skipped.Count -gt 0) { $summary += (', {0} ignorée(s) (pas encore disponibles en mode réel)' -f $skipped.Count) }
         Write-RunLog -Log $log -Level $level -Message ($summary + '.')
+        foreach ($item in $launched) {
+            Write-RunLog -Log $log -Level ATTN -Message ('  Lancée, fin à vérifier : {0}{1}' -f (Format-ActionPrefix -Action $item.Action -StepCount $Plan.StepCount), $item.Action.Label)
+        }
         foreach ($item in $failed) {
             Write-RunLog -Log $log -Level ERREUR -Message ('  Échec : {0}{1} — {2}' -f (Format-ActionPrefix -Action $item.Action -StepCount $Plan.StepCount), $item.Action.Label, $item.Error)
         }

@@ -9,7 +9,8 @@ function Invoke-ExecutionPlan {
         Exécute le plan dans le mode du contexte, puis écrit le rapport final.
         -StepCatalog : table Id → étape (par défaut le catalogue du module ; injectable pour les tests).
         Renvoie les résultats { Action, Outcome, Error, RebootRequired, Duration }.
-        Outcome : 'Simulated', 'Succeeded', 'Failed' ou 'Skipped' (étape pas encore disponible en
+        Outcome : 'Simulated', 'Succeeded', 'Launched' (lancé, se poursuit en arrière-plan, fin non
+        vérifiée : DEC35), 'Failed' ou 'Skipped' (étape pas encore disponible en
         mode réel : signalée, jamais exécutée à moitié).
     #>
     [CmdletBinding()]
@@ -52,8 +53,15 @@ function Invoke-ExecutionPlan {
                 try {
                     $output = @(& $step.Invoke $action $Context)
                     $result.RebootRequired = [bool](@($output | Where-Object { $_ -and $_.PSObject.Properties['RebootRequired'] -and $_.RebootRequired }).Count)
-                    $result.Outcome = 'Succeeded'
-                    Write-RunLog -Log $log -Level OK -Message ('{0}terminé ({1:N0} s)' -f $prefix, ((Get-Date) - $started).TotalSeconds)
+                    $launched = [bool](@($output | Where-Object { $_ -and $_.PSObject.Properties['Launched'] -and $_.Launched }).Count)
+                    if ($launched) {
+                        # Lancé, se poursuit en arrière-plan : fin non vérifiable par l'outil (DEC35).
+                        $result.Outcome = 'Launched'
+                        Write-RunLog -Log $log -Level ATTN -Message ('{0}lancé ({1:N0} s), se poursuit en arrière-plan : fin non vérifiée par l''outil' -f $prefix, ((Get-Date) - $started).TotalSeconds)
+                    } else {
+                        $result.Outcome = 'Succeeded'
+                        Write-RunLog -Log $log -Level OK -Message ('{0}terminé ({1:N0} s)' -f $prefix, ((Get-Date) - $started).TotalSeconds)
+                    }
                 } catch {
                     $result.Outcome = 'Failed'
                     $result.Error = $_.Exception.Message

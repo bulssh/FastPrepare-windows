@@ -23,7 +23,10 @@ Register-Step -Id 'update-vendor-utility' -Section 7 -Title 'Mise à jour par l'
     # inutilisable ; l'exécution attend sa fin.
     $result = Invoke-ExternalProcess -FilePath $path -ArgumentList ([string]$update.Arguments) -SuccessExitCode ([int[]]@($update.SuccessExitCodes)) -RebootExitCode $rebootCodes `
         -ExitCodeMessage $messages -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 180 -OnTimeout Wait -Log $Context.Log
-    # Outil qui ne fait que lancer la mise à jour (Lenovo SU Helper) : rappel écrit au journal (Update.Notice).
+    # Rappel au technicien (Update.Notice).
     if ($update.PSObject.Properties['Notice'] -and $update.Notice) { Write-RunLog -Log $Context.Log -Level ATTN -Message ([string]$update.Notice) }
-    [pscustomobject]@{ RebootRequired = $result.RebootRequired }
+    # Outil qui ne fait que lancer la session (Lenovo SU Helper, DEC35) : l'éditeur ne documente
+    # aucun signal de fin ; l'action est « lancée », jamais annoncée réussie.
+    $launched = $update.PSObject.Properties['Asynchronous'] -and [bool]$update.Asynchronous
+    [pscustomobject]@{ RebootRequired = $result.RebootRequired; Launched = [bool]$launched }
 }

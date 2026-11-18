@@ -198,11 +198,24 @@ Describe 'Étape 11 en mode réel — mise à jour par l''utilitaire' {
         Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
         $context = New-TestContext -Folder (Join-Path $TestDrive 'l6') -Mode Real -Config (New-LenovoConfig)
         $results = Invoke-Vendor $context 'lenovo' -Update
-        $results[-1].Outcome | Should -Be 'Succeeded'
+        # Session lancée, fin non vérifiable : jamais « réussie » (DEC35, audit BUG-024).
+        $results[-1].Outcome | Should -Be 'Launched'
         Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter {
-            $FilePath -eq 'C:\Program Files\Lenovo\SUHelper\suhelper.exe' -and $ArgumentList -match '-autoupdate' -and $ArgumentList -match '-reboottype 0,3,5' -and $ArgumentList -match '-noreboot' -and $ExitCodeMessage[2] -match 'déjà en cours'
+            $FilePath -eq 'C:\Program Files\Lenovo\SUHelper\suhelper.exe' -and $ArgumentList -match '-autoupdate' -and $ArgumentList -match '-reboottype 0,3,5' -and $ArgumentList -match '-noreboot' -and $ExitCodeMessage[2] -match 'déjà en cours' -and $OnTimeout -eq 'Wait'
         }
-        ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'arrière-plan'
+        $attn = ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n"
+        $attn | Should -Match 'arrière-plan'
+        $attn | Should -Match 'lancé .*fin non vérifiée par l''outil'
+        $attn | Should -Match 'Rapport final — 1 action\(s\) réussie\(s\), 0 en échec, 1 lancée\(s\) sans suivi de fin'
+        $attn | Should -Match 'Lancée, fin à vérifier : .*MàJ utilitaire'
+    }
+    It 'outil synchrone (HP) : action réussie, pas « lancée »' {
+        Mock @m Find-InstalledExecutable { 'C:\SWSetup\HPImageAssistant\HPImageAssistant.exe' }
+        Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
+        Mock @m Assert-WingetAvailable { }
+        Mock @m Install-WingetPackage { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
+        $results = Invoke-Vendor (New-TestContext -Folder (Join-Path $TestDrive 'h1') -Mode Real) 'hp' -Update
+        $results[-1].Outcome | Should -Be 'Succeeded'
     }
     It 'outil introuvable : échec explicite' {
         Mock @m Find-InstalledExecutable { throw 'Outil « HPImageAssistant.exe » introuvable' }

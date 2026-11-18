@@ -112,6 +112,17 @@ Describe 'Assert-AppConfig' {
         Get-ConfigError $config | Should -Match 'ExitCodeMessages.16386 : texte attendu'
     }
 
+    It 'Asynchronous (DEC35) : facultatif, booléen, avec un rappel Notice obligatoire' {
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Update.Asynchronous | Should -BeTrue
+        { Assert-AppConfig -Config $config } | Should -Not -Throw
+        $config.Utilities.lenovo.Update.Asynchronous = 'oui'
+        Get-ConfigError $config | Should -Match 'Asynchronous'
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Update.PSObject.Properties.Remove('Notice')
+        Get-ConfigError $config | Should -Match 'Notice : obligatoire quand Asynchronous'
+    }
+
     It 'archive .zip : Run (nom simple d''un .exe) et éditeur attendu exigés' {
         $config = Get-TestConfig
         $config.Utilities.lenovo.Install[0].Run = '..\VantageInstaller.exe'

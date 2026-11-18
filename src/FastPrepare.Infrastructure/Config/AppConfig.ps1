@@ -205,6 +205,12 @@ function Test-UtilityConfig {
             }
         }
         [void](Test-ConfigField $Report $Utility.Update 'Notice' "$Path.Update" NonEmptyString -Optional)
+        # Outil qui lance les mises à jour puis rend la main (DEC35) : action « lancée », jamais « réussie ».
+        if (Test-ConfigField $Report $Utility.Update 'Asynchronous' "$Path.Update" Bool -Optional) {
+            if ($Utility.Update.Asynchronous -and -not ($Utility.Update.PSObject.Properties['Notice'] -and $Utility.Update.Notice)) {
+                $Report.Errors.Add("$Path.Update.Notice : obligatoire quand Asynchronous vaut true (rappel au technicien)")
+            }
+        }
         # Sens des codes de sortie propres à l'outil, écrit au journal en cas d'échec (facultatif).
         if (Test-ConfigField $Report $Utility.Update 'ExitCodeMessages' "$Path.Update" Object -Optional) {
             foreach ($entry in $Utility.Update.ExitCodeMessages.PSObject.Properties) {
