@@ -12,28 +12,36 @@ function Save-RemoteFile {
         [Parameter(Mandatory)][string]$Url,
         [Parameter(Mandatory)][string]$Destination,
         [AllowEmptyString()][string]$Sha256,
+        # Forme du lien écrite au journal et dans les erreurs, si le lien peut porter un secret (SEC-003).
+        [string]$DisplayUrl,
         $Log
     )
 
-    if ($Url -notmatch '^https://') { throw "Téléchargement refusé (lien https:// attendu) : $Url" }
+    $shown = if ($DisplayUrl) { $DisplayUrl } else { $Url }
+    if ($Url -notmatch '^https://') { throw "Téléchargement refusé (lien https:// attendu) : $shown" }
     $folder = Split-Path -Path $Destination -Parent
     if (-not (Test-Path -LiteralPath $folder)) { New-Item -ItemType Directory -Path $folder -Force | Out-Null }
     $partial = "$Destination.partiel"
     if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
 
-    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message "Téléchargement : $Url → $Destination" }
+    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message "Téléchargement : $shown → $(if ($DisplayUrl) { Split-Path -Path $Destination -Parent } else { $Destination })" }
     try {
-        Start-BitsTransfer -Source $Url -Destination $partial -ErrorAction Stop
+        try {
+            Start-BitsTransfer -Source $Url -Destination $partial -ErrorAction Stop
+        } catch {
+            if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message ("BITS indisponible ({0}), repli HttpClient" -f (Hide-Secret -Text $_.Exception.Message -Secret $Url -Replacement $shown)) }
+            Save-HttpFile -Url $Url -Destination $partial
+        }
     } catch {
-        if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message "BITS indisponible ($($_.Exception.Message)), repli HttpClient" }
-        Save-HttpFile -Url $Url -Destination $partial
+        # Messages d'erreur réseau : le lien complet n'en sort jamais quand il est masqué.
+        throw (Hide-Secret -Text $_.Exception.Message -Secret $Url -Replacement $shown)
     }
 
     if ($Sha256) {
         $actual = (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash
         if ($actual -ne $Sha256.Trim().ToUpperInvariant()) {
             Remove-Item -LiteralPath $partial -Force
-            throw "Empreinte SHA-256 inattendue pour $Url (attendue $Sha256, obtenue $actual) : fichier supprimé."
+            throw "Empreinte SHA-256 inattendue pour $shown (attendue $Sha256, obtenue $actual) : fichier supprimé."
         }
     }
     Move-Item -LiteralPath $partial -Destination $Destination -Force
@@ -53,14 +61,28 @@ function Save-RemoteInstaller {
         [Parameter(Mandatory)][string]$Url,
         [Parameter(Mandatory)][string]$Folder,
         [Parameter(Mandatory)][string]$FileName,
+        # Forme du lien écrite au journal et dans les erreurs (SEC-003).
+        [string]$DisplayUrl,
         $Log
     )
-    if ($FileName -ne [System.IO.Path]::GetFileName($FileName)) { throw "Nom de fichier refusé : $FileName" }
-    $neutral = Save-RemoteFile -Url $Url -Destination (Join-Path $Folder 'telechargement.bin') -Log $Log
+    if ($FileName -ne [System.IO.Path]::GetFileName($FileName)) { throw 'Nom de fichier refusé' }
+    $neutral = Save-RemoteFile -Url $Url -Destination (Join-Path $Folder 'telechargement.bin') -DisplayUrl $DisplayUrl -Log $Log
     $target = [System.IO.Path]::Combine($Folder, $FileName)
     if ([System.IO.File]::Exists($target)) { [System.IO.File]::Delete($target) }
     [System.IO.File]::Move($neutral, $target)
     return $target
+}
+
+function Hide-Secret {
+    <# Remplace -Secret (et sa forme encodée) par -Replacement dans un texte destiné au journal. #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([AllowEmptyString()][string]$Text, [AllowEmptyString()][string]$Secret, [string]$Replacement)
+    if (-not $Secret -or $Secret -eq $Replacement) { return $Text }
+    $result = ([string]$Text).Replace($Secret, $Replacement)
+    $decoded = [System.Uri]::UnescapeDataString($Secret)
+    if ($decoded -ne $Secret) { $result = $result.Replace($decoded, $Replacement) }
+    return $result
 }
 
 function Save-HttpFile {
@@ -123,6 +145,16 @@ function Assert-TrustedExecutable {
     if ($ExpectedSigner -and $subject -notmatch [regex]::Escape($ExpectedSigner)) {
         throw ("{0} est signé par « {1} », et non par « {2} » : exécutable non lancé." -f [System.IO.Path]::GetFileName($Path), $subject, $ExpectedSigner)
     }
+}
+
+function Get-ExecutableSigner {
+    <# Sujet du certificat de signature d'un fichier (ex. « CN=Bitdefender SRL, O=Bitdefender SRL, … ») ; vide s'il n'est pas signé. #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$Path)
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
+    if (-not $signature.SignerCertificate) { return '' }
+    return [string]$signature.SignerCertificate.Subject
 }
 
 function Test-RemoteFile {

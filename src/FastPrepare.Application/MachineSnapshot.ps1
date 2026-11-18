@@ -102,14 +102,20 @@ function Get-InstalledSoftwareView {
         $target = Get-UninstallProbeTarget -Entry $entry
         $probe = if ($target) { Get-ExecutableProbe -Path $target } else { $null }
         $strategy = Resolve-UninstallStrategy -Entry $entry -ExecutableProbe $probe
+        # Entrée de la seule session (HKCU) : sa commande est modifiable sans droits d'administrateur ;
+        # elle n'est donc jamais lancée en silence, mais fenêtre affichée (audit SEC-001, DEC36).
+        $userScope = [string]$entry.PSPath -match 'HKEY_CURRENT_USER'
+        $silent = [bool]$strategy.Silent -and -not $userScope
+        $method = if ($userScope) { '{0}, installé pour une seule session' -f $strategy.Method } else { $strategy.Method }
         [pscustomobject]@{
             PSTypeName = 'FastPrepare.InstalledSoftware'
             Name       = [string]$entry.DisplayName
             Version    = [string]$entry.DisplayVersion
             Publisher  = [string]$entry.Publisher
-            Silent     = $strategy.Silent
-            Method     = $strategy.Method
+            Silent     = $silent
+            Method     = $method
             Command    = $strategy.Command
+            UserScope  = [bool]$userScope
         }
     }
     return @($items | Sort-Object -Property Name)

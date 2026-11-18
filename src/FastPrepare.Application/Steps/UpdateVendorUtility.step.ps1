@@ -12,6 +12,10 @@ Register-Step -Id 'update-vendor-utility' -Section 7 -Title 'Mise à jour par l'
     param($Action, $Context)
     $update = $Context.Config.Utilities.($Action.Parameters.UtilityKey).Update
     $path = Find-InstalledExecutable -Path (Expand-ConfigPath -Path ([string]$update.FilePath) -Variables $Context.Paths.Variables)
+    # Outil lancé avec les droits d'administrateur : signature valide de l'éditeur attendu, vérifiée
+    # juste avant le lancement ; sinon il n'est pas lancé (audit SEC-002, DEC38).
+    $signer = if ($update.PSObject.Properties['ExpectedSigner']) { [string]$update.ExpectedSigner } else { '' }
+    Assert-TrustedExecutable -Path $path -ExpectedSigner $signer
     $rebootCodes = if ($update.PSObject.Properties['RebootExitCodes']) { [int[]]@($update.RebootExitCodes) } else { [int[]]@(3010, 1641) }
     # Sens des codes de sortie de l'outil (config.json), clé entière pour Invoke-ExternalProcess.
     $messages = @{}

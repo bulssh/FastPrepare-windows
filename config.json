@@ -44,6 +44,7 @@
       ],
       "Update": {
         "FilePath": "%ProgramFiles%\\Dell\\CommandUpdate\\dcu-cli.exe",
+        "ExpectedSigner": "Dell",
         "Arguments": "/applyUpdates -reboot=disable",
         "SuccessExitCodes": [0, 500],
         "RebootExitCodes": [1, 5]
@@ -60,6 +61,7 @@
       ],
       "Update": {
         "FilePath": "HPImageAssistant.exe",
+        "ExpectedSigner": "HP Inc",
         "Arguments": "/Operation:Analyze /Action:Install /Silent",
         "SuccessExitCodes": [0, 256, 257],
         "RebootExitCodes": [3010],
@@ -88,6 +90,7 @@
       ],
       "Update": {
         "FilePath": "%ProgramFiles%\\Lenovo\\SUHelper\\suhelper.exe",
+        "ExpectedSigner": "Lenovo",
         "Arguments": "-autoupdate -packagetype 1,2,3,4 -reboottype 0,3,5 -noreboot",
         "SuccessExitCodes": [0],
         "ExitCodeMessages": {
@@ -110,6 +113,7 @@
       ],
       "Update": {
         "FilePath": "ducmd.exe",
+        "ExpectedSigner": "Fujitsu",
         "Arguments": "/WEB /DRV /BIOS",
         "SuccessExitCodes": [0]
       }
@@ -144,6 +148,11 @@
 
   "Printers": {
     "DriverFolder": "C:\\Drivers"
+  },
+
+  "Agents": {
+    "Rmm": { "ExpectedSigners": ["NinjaOne", "NinjaRMM", "Datto", "Kaseya"] },
+    "Antivirus": { "ExpectedSigners": ["Bitdefender", "ESET"] }
   },
 
   "NewLocalAccount": {

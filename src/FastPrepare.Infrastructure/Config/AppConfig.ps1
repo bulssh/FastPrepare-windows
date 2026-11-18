@@ -126,6 +126,19 @@ function Assert-AppConfig {
         }
     }
 
+    # Agents (facultatif, DEC37) : éditeurs attendus dans le certificat des installateurs RMM et antivirus.
+    if (Test-ConfigField $report $Config 'Agents' '' Object -Optional) {
+        foreach ($kind in 'Rmm', 'Antivirus') {
+            if (Test-ConfigField $report $Config.Agents $kind 'Agents' Object -Optional) {
+                if (Test-ConfigField $report $Config.Agents.$kind 'ExpectedSigners' "Agents.$kind" Array) {
+                    foreach ($signer in @($Config.Agents.$kind.ExpectedSigners)) {
+                        if (-not ($signer -is [string]) -or -not $signer.Trim()) { $report.Errors.Add("Agents.$kind.ExpectedSigners : noms d'éditeurs (texte) attendus") }
+                    }
+                }
+            }
+        }
+    }
+
     # Printers (facultatif, itération 17) : dossier où chercher les pilotes .inf des imprimantes.
     if (Test-ConfigField $report $Config 'Printers' '' Object -Optional) {
         [void](Test-ConfigField $report $Config.Printers 'DriverFolder' 'Printers' NonEmptyString -Optional)
@@ -205,6 +218,8 @@ function Test-UtilityConfig {
             }
         }
         [void](Test-ConfigField $Report $Utility.Update 'Notice' "$Path.Update" NonEmptyString -Optional)
+        # Éditeur attendu dans la signature de l'outil, vérifié avant chaque lancement (DEC38).
+        [void](Test-ConfigField $Report $Utility.Update 'ExpectedSigner' "$Path.Update" NonEmptyString -Optional)
         # Outil qui lance les mises à jour puis rend la main (DEC35) : action « lancée », jamais « réussie ».
         if (Test-ConfigField $Report $Utility.Update 'Asynchronous' "$Path.Update" Bool -Optional) {
             if ($Utility.Update.Asynchronous -and -not ($Utility.Update.PSObject.Properties['Notice'] -and $Utility.Update.Notice)) {

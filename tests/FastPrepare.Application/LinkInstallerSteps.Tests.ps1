@@ -30,7 +30,9 @@ Describe 'Plan — agent RMM et antivirus' {
         $rmm[0].StepNumber | Should -Be 14
         $av[0].StepNumber | Should -Be 15
         $rmm[0].Label | Should -Match 'Agent RMM — NinjaOne : .*msiexec /i client-5\.9\.msi /qn /norestart'
-        $av[0].Label | Should -Match 'Antivirus — Bitdefender : .*setupdownloader_\[aHR0cHM6Ly9leGVtcGxl\]\.exe /bdparams /silent'
+        $av[0].Label | Should -Match 'Antivirus — Bitdefender : .*setupdownloader_\[…\]\.exe /bdparams /silent'
+        # Jeton de la société jamais affiché (audit SEC-003).
+        ($plan.Actions | ForEach-Object { $_.Label }) -join ' ' | Should -Not -Match 'aHR0cHM6Ly9leGVtcGxl|0000/client'
     }
 
     It 'lien refusé : plan non construit, motif explicite' {
@@ -45,6 +47,7 @@ Describe 'Mode réel — agent RMM et antivirus' {
     BeforeEach {
         Mock @m Save-RemoteInstaller { Join-Path $Folder $FileName }
         Mock @m Assert-TrustedExecutable { }
+        Mock @m Get-ExecutableSigner { 'CN=NinjaOne LLC, O=NinjaOne LLC' }
         Mock @m Get-SystemExecutablePath { "C:\Windows\System32\$Name" }
         Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
         $context = New-TestContext -Folder $TestDrive -Mode Real
@@ -90,5 +93,25 @@ Describe 'Mode réel — agent RMM et antivirus' {
         $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
         $results = Invoke-ExecutionPlan -Plan $plan -Context $context
         ($results | ForEach-Object { $_.Outcome }) -join ',' | Should -Be 'Failed,Succeeded'
+    }
+
+    It 'éditeur hors de la liste attendue : lancé quand même, avertissement (DEC37)' {
+        Mock @m Get-ExecutableSigner { 'CN=Autre Editeur SAS, O=Autre Editeur SAS' }
+        $selection.Agents.AntivirusUrl = $avUrl
+        $results = Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context
+        $results[-1].Outcome | Should -Be 'Succeeded'
+        Should -Invoke @m Invoke-ExternalProcess -Times 1
+        ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'signé par « CN=Autre Editeur SAS.*hors de la liste attendue \(Bitdefender, ESET\) : lancé quand même'
+    }
+
+    It 'jeton absent du journal, des erreurs et des noms affichés au lanceur (audit SEC-003)' {
+        Mock @m Invoke-ExternalProcess { throw ('« {0} » : code de sortie 1603' -f [System.IO.Path]::GetFileName($FilePath)) }
+        $selection.Agents.AntivirusUrl = $avUrl
+        $results = Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context
+        $results[-1].Outcome | Should -Be 'Failed'
+        $results[-1].Error | Should -Not -Match 'aHR0cHM6Ly9leGVtcGxl'
+        [System.IO.File]::ReadAllText($context.Log.FilePath) | Should -Not -Match 'aHR0cHM6Ly9leGVtcGxl'
+        Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $DisplayName -eq 'setupdownloader_[…].exe' }
+        Should -Invoke @m Save-RemoteInstaller -Times 1 -ParameterFilter { $DisplayUrl -eq 'https://cloud.gravityzone.example/…' }
     }
 }

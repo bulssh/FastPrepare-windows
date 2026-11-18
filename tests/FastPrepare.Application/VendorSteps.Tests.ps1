@@ -165,7 +165,27 @@ Describe 'Étape 11 en mode réel — mise à jour par l''utilitaire' {
         Mock @m Install-WingetPackage { [pscustomobject]@{ RebootRequired = $false; AlreadyInstalled = $true } }
         Mock @m Get-DotNetDesktopRuntimeVersion { @('8.0.20') }
         Mock @m Find-InstalledExecutable { 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' }
+        Mock @m Assert-TrustedExecutable { }
         Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 1; RebootRequired = $true } }
+    }
+    It 'signature de l''outil vérifiée avec l''éditeur attendu avant le lancement (audit SEC-002)' -ForEach @(
+        @{ Key = 'dell'; Signer = 'Dell' }, @{ Key = 'hp'; Signer = 'HP Inc' }, @{ Key = 'lenovo'; Signer = 'Lenovo' }, @{ Key = 'fujitsu'; Signer = 'Fujitsu' }
+    ) {
+        $config = Get-TestConfig
+        $config.Utilities.lenovo.Install[0].Url = 'https://exemple.test/vantage.zip'
+        Mock @m Save-RemoteFile { $Destination }
+        Mock @m Expand-DownloadedArchive { 'C:\cache\VantageInstaller.exe' }
+        Mock @m Save-RemoteInstaller { Join-Path $Folder $FileName }
+        [void](Invoke-Vendor (New-TestContext -Folder (Join-Path $TestDrive "s-$Key") -Mode Real -Config $config) $Key -Update)
+        $expected = $Signer
+        Should -Invoke @m Assert-TrustedExecutable -ParameterFilter { $ExpectedSigner -eq $expected -and $Path -like 'C:\Program Files\Dell\*' }
+    }
+    It 'outil signé par un autre éditeur : jamais lancé, action en échec (audit SEC-002)' {
+        Mock @m Assert-TrustedExecutable { throw 'dcu-cli.exe est signé par « CN=Autre », et non par « Dell » : exécutable non lancé.' } -ParameterFilter { $ExpectedSigner -eq 'Dell' }
+        $results = Invoke-Vendor (New-TestContext -Folder $TestDrive -Mode Real) 'dell' -Update
+        $results[-1].Outcome | Should -Be 'Failed'
+        $results[-1].Error | Should -Match 'non par « Dell »'
+        Should -Invoke @m Invoke-ExternalProcess -Times 0
     }
     It 'chemin développé, codes de succès et de redémarrage de config.json, redémarrage signalé' {
         $context = New-TestContext -Folder $TestDrive -Mode Real

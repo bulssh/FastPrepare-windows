@@ -196,10 +196,9 @@ Describe 'Désinstallation de logiciels' {
         [void](Invoke-UninstallCommand -Command 'C:\F\setup.exe /remove' -Interactive)
         Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $Interactive }
     }
-    It 'commande non analysable : repli cmd.exe /c, tracé' {
-        Mock @m Invoke-CmdLine { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
-        [void](Invoke-UninstallCommand -Command 'rundll32 shell32,Control_RunDLL x')
-        Should -Invoke @m Invoke-CmdLine -Times 1
+    It 'commande non analysable : rien n''est lancé, à faire à la main (audit SEC-001)' {
+        Mock @m Split-CommandLine { throw 'guillemets non fermés' }
+        { Invoke-UninstallCommand -Command '"C:\F\setup.exe /remove' } | Should -Throw '*non analysable, non lancée*Paramètres › Applications*'
         Should -Invoke @m Invoke-ExternalProcess -Times 0
     }
     It 'Uninstall-MsiProduct refuse un code produit mal formé' {

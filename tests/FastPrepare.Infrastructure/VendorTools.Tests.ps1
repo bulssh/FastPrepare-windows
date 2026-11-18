@@ -64,4 +64,9 @@ Describe 'Find-InstalledExecutable (fichiers réels dans $TestDrive)' {
     It 'nom seul présent dans le PATH' {
         Find-InstalledExecutable -Path 'cmd.exe' -SearchRoot @() | Should -Match 'cmd\.exe$'
     }
+    It 'homonyme dans le PATH : le dossier d''installation passe avant (audit SEC-002)' {
+        New-Item -ItemType Directory -Path (Join-Path $root 'Outils') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $root 'Outils\cmd.exe') -Value 'x'
+        Find-InstalledExecutable -Path 'cmd.exe' -SearchRoot @($root) | Should -Be (Join-Path $root 'Outils\cmd.exe')
+    }
 }
