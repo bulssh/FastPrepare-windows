@@ -72,6 +72,7 @@
         'Invoke-Odt',
         'Get-OneDriveSetupPath',
         'Uninstall-OneDrive',
+        'Get-OneDriveClientState',
         'Remove-DefaultProfileOneDriveRun',
         'Get-MsiProductCodeByName',
         'Uninstall-MsiProduct',

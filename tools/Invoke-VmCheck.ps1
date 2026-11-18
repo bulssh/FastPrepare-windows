@@ -16,11 +16,16 @@ $root = Split-Path -Parent $PSScriptRoot
 if (-not $ResultPath) { $ResultPath = Join-Path $root 'resultat-vm.txt' }
 $report = New-Object System.Collections.Generic.List[string]
 function Add-ReportLine { param([string]$Text = '') $script:report.Add($Text) }
+# Échecs relevés : le script sort avec le code 1 s'il y en a (audit BUG-022 : une intégration
+# continue verte doit prouver que chaque phase a réussi).
+$failures = New-Object System.Collections.Generic.List[string]
+function Add-Failure { param([string]$Text) $script:failures.Add($Text) }
 function Invoke-Stage {
     param([string]$Title, [scriptblock]$Action)
     Add-ReportLine ''
     Add-ReportLine "===== $Title ====="
     try { & $Action } catch {
+        Add-Failure ('phase « {0} » : {1}' -f $Title, $_.Exception.Message)
         Add-ReportLine ('ERREUR : {0}' -f $_.Exception.Message)
         Add-ReportLine ('         {0}' -f ($_.ScriptStackTrace -split "`n" | Select-Object -First 3 | ForEach-Object { $_.Trim() }) -join ' | ')
     }
@@ -115,6 +120,7 @@ try {
             foreach ($warning in @($plan.Warnings)) { Add-ReportLine ('  ATTN {0}' -f $warning) }
             $bad = @($results | Where-Object { $_.Outcome -ne 'Simulated' })
             Add-ReportLine ('Bilan : {0} action(s), {1} hors simulation' -f $results.Count, $bad.Count)
+            if ($bad.Count -gt 0) { Add-Failure ('{0} action(s) hors simulation' -f $bad.Count) }
             Add-ReportLine ('Dernière action : {0}' -f $results[-1].Action.StepId)
         } finally {
             Clear-SelectionSecret -Selection $selection
@@ -145,12 +151,23 @@ try {
             $errors = @($lines | Where-Object { $_ -match '\[ERREUR\]' })
             $warnings = @($lines | Where-Object { $_ -match '\[ATTN\]' })
             Add-ReportLine ('{0} ligne(s), {1} ERREUR, {2} ATTN' -f $lines.Count, $errors.Count, $warnings.Count)
+            if ($errors.Count -gt 0) { Add-Failure ('{0} ligne(s) ERREUR au journal' -f $errors.Count) }
             foreach ($line in @($errors) + @($warnings)) { Add-ReportLine ('  ' + $line) }
         } else {
             Add-ReportLine 'Aucun journal écrit.'
         }
     }
+} catch {
+    Add-Failure ('arrêt inattendu : {0}' -f $_.Exception.Message)
 } finally {
+    Add-ReportLine ''
+    Add-ReportLine '===== Résultat ====='
+    if ($failures.Count -eq 0) { Add-ReportLine 'RÉUSSI : aucune erreur' }
+    else {
+        Add-ReportLine ('ÉCHEC : {0} problème(s)' -f $failures.Count)
+        foreach ($failure in $failures) { Add-ReportLine ('  - ' + $failure) }
+    }
     [System.IO.File]::WriteAllLines($ResultPath, $report.ToArray(), (New-Object System.Text.UTF8Encoding($true)))
     $report | ForEach-Object { Write-Output $_ }
 }
+exit $(if ($failures.Count -eq 0) { 0 } else { 1 })

@@ -54,6 +54,28 @@ function Uninstall-OneDrive {
     return [pscustomobject]@{ Changed = $true }
 }
 
+function Get-OneDriveClientState {
+    <#
+        OneDrive encore présent pour le compte qui exécute l'outil : client installé (OneDrive.exe
+        par utilisateur ou pour tous) et processus en cours. L'installateur OneDriveSetup.exe de
+        Windows n'est pas compté : il reste après la désinstallation.
+        Renvoie { Present, Reasons }. Sert de garde avant de supprimer le dossier OneDrive (audit BUG-003).
+    #>
+    [CmdletBinding()]
+    param()
+    $reasons = New-Object System.Collections.Generic.List[string]
+    $clients = @(
+        (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Microsoft\OneDrive\OneDrive.exe'),
+        (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Microsoft OneDrive\OneDrive.exe')
+    )
+    foreach ($client in $clients) {
+        if (Test-Path -LiteralPath $client -PathType Leaf) { $reasons.Add("client installé : $client") }
+    }
+    $running = @(Get-Process -Name 'OneDrive' -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { $reasons.Add(('{0} processus OneDrive en cours' -f $running.Count)) }
+    return [pscustomobject]@{ Present = ($reasons.Count -gt 0); Reasons = $reasons.ToArray() }
+}
+
 function Remove-DefaultProfileOneDriveRun {
     <#
         Retire la valeur Run\OneDriveSetup du profil par défaut (sinon OneDrive se réinstalle à

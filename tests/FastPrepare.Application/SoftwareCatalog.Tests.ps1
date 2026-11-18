@@ -168,11 +168,11 @@ Describe 'Get-WingetSourceRepair' {
         $config.Winget.PSObject.Properties.Remove('SourcePackage')
         Get-WingetSourceRepair -Context (New-TestContext -Folder $TestDrive -Config $config) | Should -BeNullOrEmpty
     }
-    It 'le test du catalogue transmet la réparation à winget' {
+    It 'le test du catalogue ne répare pas la source : lecture seule (audit BUG-001)' {
         $context = New-TestContext -Folder $TestDrive
         Mock -ModuleName FastPrepare.Application Test-Winget { $true }
         Mock -ModuleName FastPrepare.Application Get-WingetPackageInfo { [pscustomobject]@{ Name = 'x'; Version = '1' } }
         [void](Test-SoftwareCatalogEntry -Entry $context.SoftwareCatalog[0] -Context $context)
-        Should -Invoke -ModuleName FastPrepare.Application Get-WingetPackageInfo -Times 1 -ParameterFilter { $SourceRepair.ExpectedSigner -eq 'CN=Microsoft Corporation' }
+        Should -Invoke -ModuleName FastPrepare.Application Get-WingetPackageInfo -Times 1 -ParameterFilter { $NoRepair -and -not $SourceRepair }
     }
 }

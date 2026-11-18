@@ -26,6 +26,8 @@ Describe 'Mode réel — désinstallations' {
         Mock @m Stop-ProcessByName { 0 }
         Mock @m Uninstall-OneDrive { [pscustomobject]@{ Changed = $true } }
         Mock @m Remove-DefaultProfileOneDriveRun { [pscustomobject]@{ Changed = $true } }
+        Mock @m Get-OneDriveClientState { [pscustomobject]@{ Present = $false; Reasons = @() } }
+        Mock @m Start-Sleep { }
         Mock @m Invoke-UninstallCommand { [pscustomobject]@{ RebootRequired = $false } }
         Mock @m Wait-UninstallEntryRemoval { $true }
         $context = New-TestContext -Folder $TestDrive -Mode Real
@@ -52,6 +54,30 @@ Describe 'Mode réel — désinstallations' {
         Should -Invoke @m Remove-DefaultProfileOneDriveRun -Times 1 -ParameterFilter { $DefaultProfilePath -eq 'C:\Users\Default' }
         Should -Invoke @m Invoke-UninstallCommand -Times 1 -ParameterFilter { $Command -like 'msiexec*' -and -not $Interactive }
         Should -Invoke @m Invoke-UninstallCommand -Times 1 -ParameterFilter { $Command -like 'C:\A\setup.exe*' -and $Interactive }
+    }
+
+    It 'OneDrive : désinstallation en échec, dossier conservé ; les autres actions continuent (audit BUG-003)' {
+        Mock @m Uninstall-OneDrive { throw '« OneDriveSetup.exe » : code de sortie 1' }
+        Mock @m Get-OneDriveClientState { [pscustomobject]@{ Present = $true; Reasons = @('client installé : C:\Users\technicien\AppData\Local\Microsoft\OneDrive\OneDrive.exe') } }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OneDrive = $true; $selection.MicrosoftApps.OneDriveFolder = $true
+        $results = @(Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context)
+        $results.Count | Should -Be 3
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[1].Outcome | Should -Be 'Succeeded'      # clé Run du profil Default, indépendante
+        $results[2].Outcome | Should -Be 'Failed'
+        $results[2].Error | Should -Match 'OneDrive encore présent.*dossier conservé'
+        Should -Invoke @m Remove-GuardedFolder -Times 0
+    }
+
+    It 'OneDrive : client parti après un court délai, dossier supprimé' {
+        $script:clientChecks = 0
+        Mock @m Get-OneDriveClientState { $script:clientChecks++; [pscustomobject]@{ Present = ($script:clientChecks -lt 3); Reasons = @('1 processus OneDrive en cours') } }
+        $selection = New-Selection
+        $selection.MicrosoftApps.OneDrive = $true; $selection.MicrosoftApps.OneDriveFolder = $true
+        $results = @(Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context)
+        @($results | Where-Object Outcome -NE 'Succeeded') | Should -BeNullOrEmpty
+        Should -Invoke @m Remove-GuardedFolder -Times 1
     }
 
     It 'Office absent du poste : l''outil de déploiement n''est ni téléchargé ni lancé, l''action réussit' {

@@ -51,6 +51,19 @@ Describe 'Fenêtre principale (construction WPF)' -Skip:(-not $script:OnWindows)
         }
     }
 
+    It 'lancement en échec avant le démarrage du travail : formulaire déverrouillé (audit BUG-010)' {
+        InModuleScope FastPrepare.UI -Parameters @{ Snapshot = $script:BuildSnapshot } {
+            param($Snapshot)
+            $script:Snapshot = $Snapshot
+            Mock New-ExecutionPlan { [pscustomobject]@{ Actions = @(); Warnings = @(); StepCount = 18 } }
+            Mock Start-ExecutionPlan { throw 'ouverture du runspace impossible' }
+            { Invoke-Launch } | Should -Throw '*runspace*'
+            $script:Running | Should -BeFalse
+            [string]$script:Shell.Controls.PbRun.Visibility | Should -Be 'Collapsed'
+            $script:LaunchSelection | Should -BeNullOrEmpty
+        }
+    }
+
     It 'Suivant et Précédent suivent le parcours' {
         InModuleScope FastPrepare.UI {
             Show-WizardPage -Id 'poste'
