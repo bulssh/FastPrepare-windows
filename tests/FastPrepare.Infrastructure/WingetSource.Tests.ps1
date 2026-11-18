@@ -147,12 +147,21 @@ Describe 'Seconde réparation : paquet de données de la source (DEC21)' {
         Should -Invoke @m Save-RemoteFile -Times 0
     }
 
-    It 'installation réelle et vérification au démarrage : même réparation' {
+    It 'installation réelle : même réparation' {
         $script:installed = $false
         [void](Install-WingetPackage -Id '7zip.7zip' -Source 'winget' -SourceRepair $repair -Log $log)
         Should -Invoke @m Add-AppxPackage -Times 1
+    }
+
+    It 'lecture seule (relevé, test du catalogue) : ni mise à jour des sources ni paquet installé (audit BUG-001)' {
         $script:installed = $false
-        (Test-WingetSource -SourceRepair $repair -Log $log).Ready | Should -BeTrue
+        $result = Test-WingetSource -Log $log
+        $result.Ready | Should -BeFalse
+        $result.Error | Should -Match 'réparée au lancement réel'
+        { Get-WingetPackageInfo -Id 'Microsoft.VisualStudioCode' -Source 'winget' -SourceRepair $repair -NoRepair -Log $log } | Should -Throw '*réparée au lancement réel*'
+        @(Get-Calls | Where-Object { $_ -like 'source *' }).Count | Should -Be 0
+        Should -Invoke @m Save-RemoteFile -Times 0
+        Should -Invoke @m Add-AppxPackage -Times 0
     }
 }
 

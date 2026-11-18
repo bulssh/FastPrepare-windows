@@ -129,6 +129,19 @@ Describe 'ODT' {
 }
 
 Describe 'OneDrive' {
+    It 'état du client : client installé ou processus actif = présent ; l''installateur de Windows ne compte pas' {
+        Mock @m Test-Path { $LiteralPath -like '*\AppData\Local\Microsoft\OneDrive\OneDrive.exe' -or $LiteralPath -like '*AppData*Microsoft\OneDrive\OneDrive.exe' }
+        Mock @m Get-Process { @() }
+        $state = Get-OneDriveClientState
+        $state.Present | Should -BeTrue
+        $state.Reasons[0] | Should -Match 'client installé'
+        Mock @m Test-Path { $false }
+        Mock @m Get-Process { @([pscustomobject]@{ Id = 42 }) } -ParameterFilter { $Name -eq 'OneDrive' }
+        (Get-OneDriveClientState).Reasons | Should -Be '1 processus OneDrive en cours'
+        Mock @m Get-Process { @() } -ParameterFilter { $Name -eq 'OneDrive' }
+        (Get-OneDriveClientState).Present | Should -BeFalse
+    }
+
     It 'chaque installateur trouvé est lancé avec /uninstall, /allusers pour l''installation pour tous' {
         Mock @m Get-OneDriveSetupPath { @([pscustomobject]@{ Path = 'C:\Windows\System32\OneDriveSetup.exe'; AllUsers = $false }, [pscustomobject]@{ Path = 'C:\Program Files\Microsoft OneDrive\24.1\OneDriveSetup.exe'; AllUsers = $true }) }
         Mock @m Stop-ProcessByName { 0 }

@@ -153,11 +153,13 @@ function Get-WingetPackageInfo {
         [Parameter(Mandatory)][string]$Source,
         # Réparation de la source (Get-WingetSourceRepair, FastPrepare.Application) ; facultative.
         $SourceRepair,
+        # Lecture seule : aucune réparation de la source (test du catalogue).
+        [switch]$NoRepair,
         $Log
     )
     if ($Id -match '[\s"]' -or $Source -match '[\s"]') { throw "Identifiant ou source winget invalide : '$Id' / '$Source'." }
     $result = Invoke-Winget -ArgumentList ('show --id {0} --exact --source {1} --accept-source-agreements --disable-interactivity' -f $Id, $Source) `
-        -SuccessExitCode @(0, $script:WingetNoPackageFound) -CaptureOutput -TimeoutMinutes 5 -SourceRepair $SourceRepair -Log $Log
+        -SuccessExitCode @(0, $script:WingetNoPackageFound) -CaptureOutput -TimeoutMinutes 5 -SourceRepair $SourceRepair -NoRepair:$NoRepair -Log $Log
     if ($result.ExitCode -eq $script:WingetNoPackageFound) { throw "paquet « $Id » introuvable dans la source « $Source »" }
     return (ConvertFrom-WingetShowDetail -Output $result.Output -Id $Id)
 }
@@ -187,19 +189,18 @@ function ConvertFrom-WingetShowDetail {
 function Test-WingetSource {
     <#
         Vérifie qu'une source winget s'ouvre pour le compte courant, sans rien télécharger : une
-        recherche sans résultat (« aucun paquet ») prouve que la source répond. Une source
-        inutilisable est réparée une fois (Invoke-Winget). Renvoie { Ready, Error }.
+        recherche sans résultat (« aucun paquet ») prouve que la source répond. Lecture seule :
+        une source inutilisable n'est pas réparée ici (Invoke-Winget -NoRepair), mais à
+        l'installation réelle. Renvoie { Ready, Error }.
     #>
     [CmdletBinding()]
     param(
         [ValidatePattern('^[A-Za-z0-9-]+$')][string]$Source = 'winget',
-        # Réparation de la source (Get-WingetSourceRepair, FastPrepare.Application) ; facultative.
-        $SourceRepair,
         $Log
     )
     try {
         [void](Invoke-Winget -ArgumentList ('search --query {0} --source {1} --accept-source-agreements --disable-interactivity' -f $script:WingetSourceProbeQuery, $Source) `
-                -SuccessExitCode @(0, $script:WingetNoPackageFound) -CaptureOutput -TimeoutMinutes 3 -SourceRepair $SourceRepair -Log $Log)
+                -SuccessExitCode @(0, $script:WingetNoPackageFound) -CaptureOutput -TimeoutMinutes 3 -NoRepair -Log $Log)
         return [pscustomobject]@{ Ready = $true; Error = $null }
     } catch {
         return [pscustomobject]@{ Ready = $false; Error = $_.Exception.Message }
@@ -224,6 +225,9 @@ function Invoke-Winget {
         [switch]$CaptureOutput,
         [int]$TimeoutMinutes = 60,
         $SourceRepair,
+        # Lecture seule (relevé, test du catalogue) : aucune réparation, la source est seulement
+        # déclarée inutilisable (audit BUG-001 : la simulation ne modifie rien).
+        [switch]$NoRepair,
         $Log
     )
     $wingetPath = (Get-Command -Name 'winget.exe' -ErrorAction Stop).Source
@@ -240,6 +244,11 @@ function Invoke-Winget {
     if ($result.ExitCode -ne $script:WingetSourceDataMissing) { return $result }
 
     $account = [Environment]::UserName
+    if ($NoRepair) {
+        throw ("source winget inutilisable pour le compte « {0} » (0x8A15000F : données requises par la source manquantes) ; " +
+            "elle sera réparée au lancement réel avant les installations. Sinon, dans une invite de commandes administrateur ouverte avec ce compte : " +
+            "winget source reset --force, puis winget source update.") -f $account
+    }
     # 1. Mise à jour des sources.
     if ($Log) { Write-RunLog -Log $Log -Level ATTN -Message "Source winget inutilisable pour le compte « $account » (0x8A15000F) : mise à jour des sources (winget source update) puis nouvel essai" }
     try {

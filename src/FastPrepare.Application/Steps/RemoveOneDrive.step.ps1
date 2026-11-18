@@ -46,6 +46,18 @@ Register-Step -Id 'remove-onedrive' -Section 3 -Title 'Désinstallation de OneDr
             if (-not $result.Changed) { Write-RunLog -Log $log -Message 'OneDrive : aucune clé Run dans le profil par défaut' }
         }
         'RemoveFolder' {
+            # Le dossier n'est supprimé que si OneDrive a bien disparu : un client encore installé
+            # ou actif propagerait la suppression vers le cloud (audit BUG-003). La désinstallation
+            # peut finir en arrière-plan : nouvel essai pendant 30 s au plus.
+            $client = Get-OneDriveClientState
+            for ($wait = 0; $client.Present -and $wait -lt 15; $wait++) {
+                Start-Sleep -Seconds 2
+                $client = Get-OneDriveClientState
+            }
+            if ($client.Present) {
+                throw ('OneDrive encore présent ({0}) : dossier conservé, pour ne pas propager sa suppression vers le cloud. ' +
+                    'Désinstaller OneDrive puis supprimer le dossier à la main : {1}') -f ($client.Reasons -join ' ; '), $Action.Parameters.Path
+            }
             # Garde revérifiée au moment de supprimer, avec les emplacements relus dans le registre.
             $profiles = Get-ProfileLocation
             $result = Remove-GuardedFolder -Path $Action.Parameters.Path -ProfilesRoot $profiles.Root -CurrentProfile $profiles.Current -AllowInsideProfile

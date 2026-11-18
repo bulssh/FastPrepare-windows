@@ -469,6 +469,7 @@ function Invoke-Launch {
     # Gardée jusqu'à la fin de l'exécution : les actions du plan référencent son mot de passe.
     $script:LaunchSelection = Get-CurrentSelection
     $started = $false
+    $locked = $false
     try {
         $plan = New-ExecutionPlan -Selection $script:LaunchSelection -Snapshot $script:Snapshot -Context $context
 
@@ -480,20 +481,26 @@ function Invoke-Launch {
         }
 
         Set-ExecutionLock -Locked $true
+        $locked = $true
         $work = Start-ExecutionPlan -Plan $plan -Context $context
+        Register-UiBackgroundWork -Work $work -OnCompleted {
+            param($result)
+            Complete-Launch
+            Set-ExecutionLock -Locked $false
+        } -OnFailed {
+            param($message)
+            Write-RunLog -Log $script:Context.Log -Level ERREUR -Message "Exécution interrompue : $message"
+            Complete-Launch
+            Set-ExecutionLock -Locked $false
+        }
         $started = $true
     } finally {
-        if (-not $started) { Complete-Launch }
-    }
-    Register-UiBackgroundWork -Work $work -OnCompleted {
-        param($result)
-        Complete-Launch
-        Set-ExecutionLock -Locked $false
-    } -OnFailed {
-        param($message)
-        Write-RunLog -Log $script:Context.Log -Level ERREUR -Message "Exécution interrompue : $message"
-        Complete-Launch
-        Set-ExecutionLock -Locked $false
+        # Lancement abandonné ou en échec avant la prise en charge du travail : formulaire rendu
+        # au technicien (audit BUG-010).
+        if (-not $started) {
+            Complete-Launch
+            if ($locked) { Set-ExecutionLock -Locked $false }
+        }
     }
 }
 
