@@ -14,9 +14,12 @@ Register-Step -Id 'run-windows-update' -Section 7 -Title 'Windows Update' -Plan 
         # Une seule passe (cahier, question QO3) : on signale sans relancer.
         Write-RunLog -Log $log -Level ATTN -Message ('Windows Update : {0} mise(s) à jour encore disponible(s) après cette passe (relancer Windows Update après redémarrage)' -f $pass.Remaining)
     }
-    if (@($pass.Failed).Count -gt 0) {
-        if ($pass.RebootRequired) { Write-RunLog -Log $log -Level ATTN -Message 'Windows Update : redémarrage nécessaire pour finaliser les mises à jour installées.' }
-        throw ('{0} mise(s) à jour en échec sur {1} : {2}' -f @($pass.Failed).Count, $pass.Found, (@($pass.Failed) -join ' ; '))
+    $problems = @()
+    if (@($pass.Failed).Count -gt 0) { $problems += ('{0} en échec : {1}' -f @($pass.Failed).Count, (@($pass.Failed) -join ' ; ')) }
+    if (@($pass.Partial).Count -gt 0) { $problems += ('{0} installée(s) avec erreurs : {1}' -f @($pass.Partial).Count, (@($pass.Partial) -join ' ; ')) }
+    if ($problems.Count -gt 0) {
+        # Le redémarrage demandé par les mises à jour installées reste au bilan (audit BUG-013).
+        throw (New-StepFailure -RebootRequired:([bool]$pass.RebootRequired) -Message ('Windows Update, {0} réussie(s) sur {1} trouvée(s) ; {2}' -f $pass.Installed, $pass.Found, ($problems -join ' ; ')))
     }
     Write-RunLog -Log $log -Message ('Windows Update : {0} installée(s) sur {1} trouvée(s)' -f $pass.Installed, $pass.Found)
     [pscustomobject]@{ RebootRequired = $pass.RebootRequired }

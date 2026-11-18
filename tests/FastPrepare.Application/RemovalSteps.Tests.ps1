@@ -103,24 +103,37 @@ Describe 'Mode réel — désinstallations' {
         $results[0].Error | Should -Match 'encore présent \(O365BusinessRetail\)'
     }
 
-    It 'Office MSI encore inscrit après ODT : réussite avec rappel du redémarrage (retrait MSI fini au redémarrage)' {
+    It 'Office MSI encore inscrit après ODT : action en échec, redémarrage gardé au bilan (audit BUG-023)' {
         Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $false; Msi = $true } }
         $selection = New-Selection
         $selection.MicrosoftApps.OfficeMsi = $true
         $results = Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context
-        $results[0].Outcome | Should -Be 'Succeeded'
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[0].Error | Should -Match 'Office MSI encore inscrit.*redémarrage final'
+        $results[0].RebootRequired | Should -BeTrue
         Should -Invoke @m Invoke-Odt -Times 1 -ParameterFilter { $Xml -match 'RemoveMSI' -and $Xml -notmatch 'Remove All' }
-        ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'redémarrage final'
+        ([System.IO.File]::ReadAllText($context.Log.FilePath)) | Should -Not -Match 'suppression vérifiée'
     }
 
-    It 'Office MSI coché avec une installation d''Office : retrait confié à l''installation, pas de passage ODT à part' {
+    It 'Office MSI coché avec une installation d''Office : retrait annoncé et fait par l''installation, aucune action à part (audit BUG-023)' {
         $selection = New-Selection
         $selection.MicrosoftApps.OfficeMsi = $true
         $selection.Office.EditionKey = 'O365'
         $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
-        @($plan.Actions | Where-Object { $_.Parameters.Kind -eq 'OdtRemove' }).Count | Should -Be 0
-        @($plan.Actions | Where-Object { $_.Parameters.Kind -eq 'MsiWithInstall' }).Count | Should -Be 1
-        ($plan.Actions | Where-Object StepId -EQ 'install-office').Parameters.Xml | Should -Match '<RemoveMSI />'
+        @($plan.Actions | Where-Object StepId -EQ 'remove-microsoft-apps').Count | Should -Be 0
+        $install = $plan.Actions | Where-Object StepId -EQ 'install-office'
+        $install.Parameters.Xml | Should -Match '<RemoveMSI />'
+        $install.Label | Should -Match 'retire aussi Office MSI'
+    }
+
+    It 'ODT : applications Office ouvertes annoncées au récapitulatif' {
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeClickToRun = $true
+        $selection.Office.EditionKey = 'O365'
+        $plan = New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context
+        foreach ($action in @($plan.Actions | Where-Object { $_.StepId -in 'remove-microsoft-apps', 'install-office' })) {
+            $action.Label | Should -Match 'fermées sans enregistrer'
+        }
     }
 
     It 'seul Office MSI présent, seule la suppression Click-to-Run demandée : rien à faire' {

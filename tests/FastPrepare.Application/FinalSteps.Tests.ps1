@@ -15,7 +15,7 @@ BeforeAll {
 
 Describe 'Étape 12 en mode réel — Windows Update' {
     It 'passe réussie : bilan journalisé, redémarrage signalé' {
-        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 3; Installed = 3; Failed = @(); RebootRequired = $true; Remaining = 0 } }
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 3; Installed = 3; Partial = @(); Failed = @(); RebootRequired = $true; Remaining = 0 } }
         $context = New-TestContext -Folder $TestDrive -Mode Real
         $results = Invoke-WindowsUpdateStep $context
         $results[0].Outcome | Should -Be 'Succeeded'
@@ -23,18 +23,27 @@ Describe 'Étape 12 en mode réel — Windows Update' {
         ((Receive-RunLogEntry -Log $context.Log).Line -join "`n") | Should -Match '3 installée\(s\) sur 3'
     }
     It 'mises à jour restantes après la passe : avertissement, pas d''échec' {
-        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 1; Installed = 1; Failed = @(); RebootRequired = $false; Remaining = 4 } }
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 1; Installed = 1; Partial = @(); Failed = @(); RebootRequired = $false; Remaining = 4 } }
         $context = New-TestContext -Folder $TestDrive -Mode Real
         (Invoke-WindowsUpdateStep $context)[0].Outcome | Should -Be 'Succeeded'
         ((Receive-RunLogEntry -Log $context.Log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match '4 mise\(s\) à jour encore disponible'
     }
     It 'mises à jour en échec : action en échec avec leurs titres, redémarrage quand même signalé' {
-        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 2; Installed = 1; Failed = @('KB999'); RebootRequired = $true; Remaining = 0 } }
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 2; Installed = 1; Partial = @(); Failed = @('KB999'); RebootRequired = $true; Remaining = 0 } }
         $context = New-TestContext -Folder $TestDrive -Mode Real
         $results = Invoke-WindowsUpdateStep $context
         $results[0].Outcome | Should -Be 'Failed'
         $results[0].Error | Should -Match 'KB999'
+        $results[0].RebootRequired | Should -BeTrue       # gardé malgré l'échec (audit BUG-013)
         ((Receive-RunLogEntry -Log $context.Log).Line -join "`n") | Should -Match 'redémarrage nécessaire pour finaliser'
+    }
+    It 'mise à jour « réussie avec erreurs » : action en échec, jamais comptée réussie (audit BUG-013)' {
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 2; Installed = 1; Partial = @('KB777'); Failed = @(); RebootRequired = $false; Remaining = 0 } }
+        $context = New-TestContext -Folder $TestDrive -Mode Real
+        $results = Invoke-WindowsUpdateStep $context
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[0].Error | Should -Match '1 réussie\(s\) sur 2.*installée\(s\) avec erreurs : KB777'
+        $results[0].RebootRequired | Should -BeFalse
     }
 }
 

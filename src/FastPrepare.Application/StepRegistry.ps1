@@ -95,6 +95,23 @@ function New-StepAction {
     }
 }
 
+function New-StepFailure {
+    <#
+        Erreur d'une action qui a pourtant demandé un redémarrage (mise à jour en partie installée,
+        retrait à terminer au redémarrage) : à lever avec throw. Le moteur garde le drapeau
+        RebootRequired dans le résultat de l'action en échec (audit BUG-013).
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Exception])]
+    param(
+        [Parameter(Mandatory)][string]$Message,
+        [switch]$RebootRequired
+    )
+    $exception = New-Object System.InvalidOperationException($Message)
+    $exception.Data['RebootRequired'] = [bool]$RebootRequired
+    return $exception
+}
+
 function New-PlanWarning {
     <# Avertissement produit par le Plan d'une étape (choix sans effet, cas non couvert…). #>
     [CmdletBinding()]

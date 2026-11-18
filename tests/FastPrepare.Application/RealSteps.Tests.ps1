@@ -16,7 +16,7 @@ Describe 'Mode réel — étapes de l''itération 3' {
         Mock @m Set-PowerTimeout { }
         # Windows Update est disponible en mode réel depuis l'itération 11 : sans ce simulacre, le
         # deuxième test lançait une vraie recherche de mises à jour sur le poste qui exécute les tests.
-        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 0; Installed = 0; Failed = @(); RebootRequired = $false; Remaining = 0 } }
+        Mock @m Invoke-WindowsUpdatePass { [pscustomobject]@{ Found = 0; Installed = 0; Partial = @(); Failed = @(); RebootRequired = $false; Remaining = 0 } }
         Mock @m Export-MachineInventory { [pscustomobject]@{ Path = 'C:\x.txt'; Error = $null } }
         $context = New-TestContext -Folder $TestDrive -Mode Real
     }

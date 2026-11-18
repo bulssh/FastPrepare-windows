@@ -57,6 +57,8 @@ function Invoke-ExecutionPlan {
                 } catch {
                     $result.Outcome = 'Failed'
                     $result.Error = $_.Exception.Message
+                    # Action en échec qui a malgré tout demandé un redémarrage (New-StepFailure).
+                    $result.RebootRequired = [bool]$_.Exception.Data['RebootRequired']
                     Write-RunLog -Log $log -Level ERREUR -Message ('{0}{1} : {2}' -f $prefix, $action.Label, $result.Error)
                 }
             }

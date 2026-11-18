@@ -126,6 +126,15 @@ Describe 'ODT' {
         Get-Content -LiteralPath $result.ConfigurationPath -Raw | Should -Be '<Configuration />'
         Should -Invoke @m Invoke-ExternalProcess -Times 1 -ParameterFilter { $ArgumentList -eq ('/configure "{0}"' -f $result.ConfigurationPath) }
     }
+    It 'Invoke-Odt : applications Office ouvertes citées au journal avant leur fermeture forcée (DEC34)' {
+        $folder = Join-Path $TestDrive 'ODT4'
+        New-Item -ItemType Directory -Path $folder | Out-Null
+        Mock @m Invoke-ExternalProcess { [pscustomobject]@{ ExitCode = 0; RebootRequired = $false } }
+        Mock @m Get-Process { @([pscustomobject]@{ ProcessName = 'EXCEL' }, [pscustomobject]@{ ProcessName = 'WINWORD' }, [pscustomobject]@{ ProcessName = 'WINWORD' }) }
+        $log = New-RunLog -Folder (Join-Path $TestDrive 'logs') -FallbackFolder (Join-Path $TestDrive 'repli') -HostName 'PC-TEST' -Stamp ([guid]::NewGuid().ToString('N'))
+        [void](Invoke-Odt -SetupPath (Join-Path $folder 'setup.exe') -Xml '<Configuration />' -Name 'installation' -Log $log)
+        ((Receive-RunLogEntry -Log $log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'fermées par ODT sans enregistrer : Word, Excel$'
+    }
 }
 
 Describe 'OneDrive' {

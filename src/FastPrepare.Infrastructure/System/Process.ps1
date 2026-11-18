@@ -17,6 +17,11 @@ $script:KnownExitCodes = @{
 function Invoke-ExternalProcess {
     <#
         Lance -FilePath avec -ArgumentList et attend sa fin (au plus -TimeoutMinutes).
+        Délai dépassé (DEC33, audit BUG-002) : jamais de processus laissé en cours pendant que
+        l'exécution continue.
+          -OnTimeout Kill (défaut) : le processus et ses enfants sont arrêtés, puis erreur.
+          -OnTimeout Wait : rien n'est arrêté (mise à jour constructeur : BIOS possible) ; l'outil
+                            l'écrit au journal et attend la fin, les étapes suivantes aussi.
         Renvoie { ExitCode, RebootRequired, Duration, Output }.
         Erreur si le code de sortie n'est ni dans -SuccessExitCode ni dans -RebootExitCode.
         -CaptureOutput : récupère la sortie standard (fenêtre masquée).
@@ -27,7 +32,8 @@ function Invoke-ExternalProcess {
         [Parameter(Mandatory)][string]$FilePath,
         [AllowEmptyString()][string]$ArgumentList = '',
         [string]$WorkingDirectory,
-        [int]$TimeoutMinutes = 60,
+        [double]$TimeoutMinutes = 60,
+        [ValidateSet('Kill', 'Wait')][string]$OnTimeout = 'Kill',
         [int[]]$SuccessExitCode = @(0),
         [int[]]$RebootExitCode = @(3010, 1641),
         [switch]$CaptureOutput,
@@ -69,12 +75,29 @@ function Invoke-ExternalProcess {
             $outputTask = $process.StandardOutput.ReadToEndAsync()
             $errorTask = $process.StandardError.ReadToEndAsync()
         }
+        $name = [System.IO.Path]::GetFileName($FilePath)
         if (-not $process.WaitForExit([int][Math]::Min([int]::MaxValue, $TimeoutMinutes * 60000))) {
-            throw ('« {0} » dépasse le délai de {1} min (processus laissé en cours, PID {2})' -f [System.IO.Path]::GetFileName($FilePath), $TimeoutMinutes, $process.Id)
+            if ($OnTimeout -eq 'Kill') {
+                Stop-ProcessTree -Id $process.Id
+                [void]$process.WaitForExit(30000)
+                throw ('« {0} » dépasse le délai de {1} min : arrêté avec ses processus enfants (PID {2})' -f $name, $TimeoutMinutes, $process.Id)
+            }
+            if ($Log) { Write-RunLog -Log $Log -Level ATTN -Message ('« {0} » dépasse le délai de {1} min : pas d''arrêt (mise à jour du BIOS possible), l''outil attend sa fin avant de continuer (PID {2})' -f $name, $TimeoutMinutes, $process.Id) }
+            while (-not $process.WaitForExit(1800000)) {
+                if ($Log) { Write-RunLog -Log $Log -Level ATTN -Message ('« {0} » toujours en cours ({1:N0} min) : attente de sa fin' -f $name, ((Get-Date) - $started).TotalMinutes) }
+            }
         }
         $process.WaitForExit()
         $exitCode = $process.ExitCode
-        $output = if ($outputTask) { $outputTask.Result + $errorTask.Result } else { '' }
+        $output = ''
+        if ($outputTask) {
+            # Un processus enfant peut garder la sortie ouverte après la fin du parent : lecture bornée.
+            if ([System.Threading.Tasks.Task]::WaitAll([System.Threading.Tasks.Task[]]@($outputTask, $errorTask), 60000)) {
+                $output = $outputTask.Result + $errorTask.Result
+            } elseif ($Log) {
+                Write-RunLog -Log $Log -Level DEBUG -Message ('Sortie de « {0} » non lue : encore ouverte par un processus enfant après 60 s' -f $name)
+            }
+        }
     } finally {
         $process.Dispose()
     }
@@ -89,6 +112,21 @@ function Invoke-ExternalProcess {
         throw ('« {0} » : code de sortie {1}{2}' -f [System.IO.Path]::GetFileName($FilePath), $exitCode, $detail)
     }
     return [pscustomobject]@{ ExitCode = $exitCode; RebootRequired = $reboot; Duration = $duration; Output = $output }
+}
+
+function Stop-ProcessTree {
+    <# Arrête un processus et ses enfants (taskkill /T /F de System32), sans passer par Invoke-ExternalProcess. #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][int]$Id)
+    if (-not $PSCmdlet.ShouldProcess("PID $Id", 'Arrêt du processus et de ses enfants')) { return }
+    $taskkill = Get-SystemExecutablePath -Name 'taskkill.exe'
+    $info = New-Object System.Diagnostics.ProcessStartInfo
+    $info.FileName = $taskkill
+    $info.Arguments = '/PID {0} /T /F' -f $Id
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $killer = [System.Diagnostics.Process]::Start($info)
+    try { [void]$killer.WaitForExit(60000) } finally { $killer.Dispose() }
 }
 
 function Invoke-CmdLine {

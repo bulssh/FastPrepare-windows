@@ -39,8 +39,26 @@ function Invoke-Odt {
     $folder = Split-Path -Path $SetupPath -Parent
     $configuration = Join-Path $folder ('configuration-{0}-{1}.xml' -f $Name, (Get-Date -Format 'yyyyMMdd-HHmmss'))
     [System.IO.File]::WriteAllText($configuration, $Xml, (New-Object System.Text.UTF8Encoding($false)))
+    # FORCEAPPSHUTDOWN (DEC34) : ODT ferme les applications Office ouvertes, sans enregistrer.
+    $open = @(Get-RunningOfficeApp)
+    if ($open.Count -gt 0 -and $Log) {
+        Write-RunLog -Log $Log -Level ATTN -Message ('Office : applications ouvertes, fermées par ODT sans enregistrer : {0}' -f ($open -join ', '))
+    }
     $result = Invoke-ExternalProcess -FilePath $SetupPath -ArgumentList ('/configure "{0}"' -f $configuration) -WorkingDirectory $folder -TimeoutMinutes $TimeoutMinutes -Log $Log
     return [pscustomobject]@{ RebootRequired = $result.RebootRequired; ConfigurationPath = $configuration }
+}
+
+function Get-RunningOfficeApp {
+    <# Applications Office ouvertes (toutes sessions) : noms lisibles, sans doublon. #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+    $names = [ordered]@{
+        WINWORD = 'Word'; EXCEL = 'Excel'; POWERPNT = 'PowerPoint'; OUTLOOK = 'Outlook'
+        ONENOTE = 'OneNote'; MSACCESS = 'Access'; MSPUB = 'Publisher'; VISIO = 'Visio'; WINPROJ = 'Project'
+    }
+    $running = @(Get-Process -Name @($names.Keys) -ErrorAction SilentlyContinue | ForEach-Object { $_.ProcessName.ToUpperInvariant() })
+    foreach ($key in $names.Keys) { if ($running -contains $key) { $names[$key] } }
 }
 
 function Get-InstalledOfficeKind {

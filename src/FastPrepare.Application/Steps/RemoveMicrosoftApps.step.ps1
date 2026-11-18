@@ -19,12 +19,12 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
             if ($msiHere) { $parts += 'MSI 2010-2016' }
             $label = 'Office : ODT /configure, suppression {0}' -f ($parts -join ' + ')
             if ($ms.OutlookClassic) { $label += ' · Outlook classique retiré avec la suite' }
+            $label += ' · applications Office ouvertes fermées sans enregistrer'
             $xml = New-OdtRemoveXml -RemoveClickToRun:([bool]$ms.OfficeClickToRun) -RemoveMsi:$msiHere
             New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{ Kind = 'OdtRemove'; Xml = $xml; ClickToRun = [bool]$ms.OfficeClickToRun; Msi = $msiHere }
         }
-        if ($msiWithInstall) {
-            New-StepAction -Label 'Office MSI 2010-2016 : retiré par l''installation d''Office (RemoveMSI dans son XML, étape 7)' -Parameters @{ Kind = 'MsiWithInstall' }
-        }
+        # $msiWithInstall : aucune action ici ; l'installation d'Office l'annonce et vérifie le
+        # retrait (audit BUG-023 : pas d'action « réussie » avant que l'installation ait abouti).
     } elseif ($ms.OutlookClassic) {
         New-PlanWarning -Message 'Outlook classique coché sans « Office Click-to-Run » ni « Office MSI » : il n''est retiré qu''avec la suite Office, aucune action prévue (question ouverte QO1).'
     }
@@ -67,14 +67,13 @@ Register-Step -Id 'remove-microsoft-apps' -Section 3 -Title 'Désinstallation de
                 throw ('ODT terminé, mais Office Click-to-Run encore présent ({0})' -f (@(Get-OfficeClickToRunProduct) -join ', '))
             }
             if ($p.Msi -and $after.Msi) {
-                # Microsoft : le retrait MSI se termine au redémarrage, qui n'est pas imposé.
-                Write-RunLog -Log $log -Level ATTN -Message 'Office MSI encore inscrit sur le poste : son retrait se termine au redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications'
+                # Retrait non constaté : jamais annoncé réussi (audit BUG-023). Microsoft : il peut
+                # se terminer au redémarrage, qui n'est pas imposé.
+                throw (New-StepFailure -RebootRequired -Message ('ODT terminé, mais Office MSI encore inscrit sur le poste : ' +
+                        'vérifier après le redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications'))
             }
             Write-RunLog -Log $log -Message 'Office : suppression vérifiée sur le poste'
             [pscustomobject]@{ RebootRequired = $result.RebootRequired }
-        }
-        'MsiWithInstall' {
-            Write-RunLog -Log $log -Message 'Office MSI : retrait confié à l''installation d''Office (RemoveMSI), étape 7'
         }
         'AppxRemove' {
             # Applications fermées avant le retrait du paquet (nouvel Outlook, nouveau Teams).
