@@ -95,6 +95,7 @@
           "2": "une session de mise à jour Commercial Vantage est déjà en cours",
           "3": "erreur inattendue (détails dans l'Observateur d'événements)"
         },
+        "Asynchronous": true,
         "Notice": "Mises à jour Lenovo lancées par Commercial Vantage : elles se poursuivent en arrière-plan. Attendre leur fin (Commercial Vantage › Mise à jour du système) avant le redémarrage final."
       }
     },
