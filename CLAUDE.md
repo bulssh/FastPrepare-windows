@@ -2,7 +2,7 @@
 
 Ce fichier est lu au début de chaque session Claude Code. Il résume tout ce qu'il faut savoir pour
 continuer le projet sans l'historique des conversations précédentes. Les détails sont dans
-`docs/architecture_plan.md` (plan, décisions DEC1 à DEC31, journal des itérations), `docs/recette.md`
+`docs/architecture_plan.md` (plan, décisions DEC1 à DEC38, journal des itérations), `docs/recette.md`
 (recettes manuelles) et `docs/CONTRIBUTING.md` (règles de code). En cas de doute, ces documents font foi.
 
 ## Le projet
@@ -114,7 +114,8 @@ cahier des charges et maquette (artefacts claude.ai de Yanis) mis à jour jusqu'
 Le laboratoire de Yanis n'a **ni poste de marque, ni console RMM, ni antivirus** : ces points ne
 peuvent pas être vérifiés avant les premières préparations réelles.
 
-1. Premières préparations réelles : relever au journal les codes de sortie des utilitaires (QO4), le
+1. Premières préparations réelles : confirmer les éditeurs des signatures (outils constructeur DEC38,
+   agents RMM et antivirus DEC37), relever au journal les codes de sortie des utilitaires (QO4), le
    chemin de `ducmd.exe`, les options silencieuses RMM et antivirus, l'installation et la mise à jour
    Lenovo (DEC31 : SU Helper ne fait que lancer la session, qui continue en arrière-plan).
 

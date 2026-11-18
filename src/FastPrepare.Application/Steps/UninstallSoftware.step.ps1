@@ -13,6 +13,7 @@ Register-Step -Id 'uninstall-software' -Section 2 -Title 'Désinstallation des l
             Method  = [string]$app.Method
             Command = [string]$app.Command
             Silent  = [bool]$app.Silent
+            UserScope = [bool]($app.PSObject.Properties['UserScope'] -and $app.UserScope)
         }
         if (-not $app.Command) {
             New-PlanWarning -Message ("{0} : aucune commande de désinstallation connue, à retirer à la main." -f $app.Name)
@@ -28,7 +29,8 @@ Register-Step -Id 'uninstall-software' -Section 2 -Title 'Désinstallation des l
     param($Action, $Context)
     $p = $Action.Parameters
     if (-not $p.Silent) {
-        Write-RunLog -Log $Context.Log -Level ATTN -Message ("Assistant de désinstallation de {0} : suivez-le à l'écran, l'outil attend sa fermeture." -f $p.Name)
+        $scope = if ($p.UserScope) { ' (logiciel installé pour une seule session : désinstallation lancée fenêtre visible, à surveiller)' } else { '' }
+        Write-RunLog -Log $Context.Log -Level ATTN -Message ("Assistant de désinstallation de {0}{1} : suivez-le à l'écran, l'outil attend sa fermeture." -f $p.Name, $scope)
     }
     $result = Invoke-UninstallCommand -Command $p.Command -Interactive:(-not $p.Silent) -Log $Context.Log
     # Certains désinstalleurs (NSIS) rendent la main avant d'avoir fini : on vérifie la disparition.

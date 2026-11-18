@@ -112,6 +112,16 @@ Describe 'Assert-AppConfig' {
         Get-ConfigError $config | Should -Match 'ExitCodeMessages.16386 : texte attendu'
     }
 
+    It 'Agents (DEC37) : facultatif ; listes d''éditeurs en texte' {
+        $config = Get-TestConfig
+        @($config.Agents.Antivirus.ExpectedSigners) | Should -Contain 'Bitdefender'
+        $config.PSObject.Properties.Remove('Agents')
+        { Assert-AppConfig -Config $config } | Should -Not -Throw
+        $config = Get-TestConfig
+        $config.Agents.Rmm.ExpectedSigners = @('NinjaOne', 3)
+        Get-ConfigError $config | Should -Match 'Agents.Rmm.ExpectedSigners'
+    }
+
     It 'Asynchronous (DEC35) : facultatif, booléen, avec un rappel Notice obligatoire' {
         $config = Get-TestConfig
         $config.Utilities.lenovo.Update.Asynchronous | Should -BeTrue

@@ -29,6 +29,8 @@ function Resolve-LinkInstaller {
         Product    = ''
         Url        = ''
         FileName   = ''
+        DisplayUrl = ''
+        DisplayFileName = ''
         Runner     = ''
         Arguments  = ''
         Error      = $null
@@ -103,6 +105,10 @@ function Resolve-LinkInstaller {
     $result.Product = $product
     $result.Url = $text
     $result.FileName = $fileName
+    # Formes affichables (récapitulatif, journal, erreurs) : le lien et le nom de fichier peuvent
+    # porter le jeton d'enrôlement du client (audit SEC-003).
+    $result.DisplayUrl = Format-SafeUrl -Url $text
+    $result.DisplayFileName = Format-SafeFileName -FileName $fileName
     $result.Runner = $runner
     $result.Arguments = $arguments
     return $result
@@ -113,7 +119,34 @@ function Format-LinkInstallerCommand {
     [CmdletBinding()]
     [OutputType([string])]
     param([Parameter(Mandatory)]$Installer)
-    $run = if ($Installer.Runner -eq 'msiexec') { 'msiexec /i {0}' -f $Installer.FileName } else { [string]$Installer.FileName }
+    # Jamais le lien ni le nom de fichier complets : ils peuvent porter un jeton (audit SEC-003).
+    $run = if ($Installer.Runner -eq 'msiexec') { 'msiexec /i {0}' -f $Installer.DisplayFileName } else { [string]$Installer.DisplayFileName }
     if ($Installer.Arguments) { $run += ' ' + $Installer.Arguments }
-    return ('{0} : téléchargement de {1} → {2}, signature vérifiée' -f $Installer.Product, $Installer.Url, $run)
+    return ('{0} : téléchargement depuis {1} → {2}, signature vérifiée' -f $Installer.Product, $Installer.DisplayUrl, $run)
+}
+
+function Format-SafeUrl {
+    <#
+        Lien affichable sans ce qui peut porter un secret : schéma et serveur seulement, chemin et
+        paramètres remplacés par « … » (https://serveur/…). Lien illisible : « (lien masqué) ».
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([AllowEmptyString()][AllowNull()][string]$Url)
+    $uri = $null
+    if (-not [System.Uri]::TryCreate(([string]$Url).Trim(), [System.UriKind]::Absolute, [ref]$uri)) { return '(lien masqué)' }
+    $tail = if (($uri.AbsolutePath -and $uri.AbsolutePath -ne '/') -or $uri.Query) { '/…' } else { '' }
+    return ('{0}://{1}{2}' -f $uri.Scheme, $uri.Host, $tail)
+}
+
+function Format-SafeFileName {
+    <#
+        Nom de fichier affichable : contenu entre crochets (identifiant de société Bitdefender) et
+        longues suites de caractères (20 et plus, jetons) remplacés par « … ».
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([AllowEmptyString()][AllowNull()][string]$FileName)
+    $safe = [regex]::Replace([string]$FileName, '\[[^\]]*\]', '[…]')
+    return [regex]::Replace($safe, '[A-Za-z0-9_=+%-]{20,}', '…')
 }

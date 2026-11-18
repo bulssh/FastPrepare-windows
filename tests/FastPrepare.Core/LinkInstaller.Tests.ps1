@@ -80,10 +80,38 @@ Describe 'Resolve-LinkInstaller — antivirus' {
 Describe 'Format-LinkInstallerCommand' {
     It 'msi : msiexec /i et arguments' {
         $r = Resolve-LinkInstaller -Kind Rmm -Url 'https://app.ninjarmm.example/agent.msi'
-        Format-LinkInstallerCommand -Installer $r | Should -Be 'NinjaOne : téléchargement de https://app.ninjarmm.example/agent.msi → msiexec /i agent.msi /qn /norestart, signature vérifiée'
+        Format-LinkInstallerCommand -Installer $r | Should -Be 'NinjaOne : téléchargement depuis https://app.ninjarmm.example/… → msiexec /i agent.msi /qn /norestart, signature vérifiée'
     }
     It 'exe sans argument' {
         $r = Resolve-LinkInstaller -Kind Rmm -Url 'https://fichiers.example/AgentSetup.exe'
         Format-LinkInstallerCommand -Installer $r | Should -Match '→ AgentSetup\.exe, signature vérifiée$'
+    }
+    It 'jetons du lien et du nom de fichier jamais affichés (audit SEC-003)' {
+        $secret = 'SECRETAUDIT0123456789abcdef'
+        $urls = @(
+            @{ Kind = 'Rmm'; Url = "https://app.ninjarmm.example/agent/installer/$secret/client-5.9.msi?token=$secret" }
+            @{ Kind = 'Antivirus'; Url = "https://cloud.gravityzone.example/Packages/BSTWIN/0/setupdownloader_%5B$secret%5D.exe" }
+            @{ Kind = 'Rmm'; Url = "https://fichiers.example/agent_$secret.exe" }
+        )
+        foreach ($case in $urls) {
+            $r = Resolve-LinkInstaller -Kind $case.Kind -Url $case.Url
+            $r.Url | Should -Be $case.Url                    # le vrai lien reste utilisé pour télécharger
+            (Format-LinkInstallerCommand -Installer $r) | Should -Not -Match $secret
+            $r.DisplayUrl | Should -Not -Match $secret
+            $r.DisplayFileName | Should -Not -Match $secret
+        }
+    }
+}
+
+Describe 'Formes affichables (audit SEC-003)' {
+    It 'Format-SafeUrl : serveur seulement' {
+        Format-SafeUrl -Url 'https://a.example/x/y.msi?k=v' | Should -Be 'https://a.example/…'
+        Format-SafeUrl -Url 'https://a.example' | Should -Be 'https://a.example'
+        Format-SafeUrl -Url 'pas un lien' | Should -Be '(lien masqué)'
+    }
+    It 'Format-SafeFileName : crochets et longues suites masqués, nom court gardé' {
+        Format-SafeFileName -FileName 'setupdownloader_[aHR0cHM6Ly9leGVtcGxl].exe' | Should -Be 'setupdownloader_[…].exe'
+        Format-SafeFileName -FileName 'client-5.9.msi' | Should -Be 'client-5.9.msi'
+        Format-SafeFileName -FileName 'agent_0123456789abcdefghij.exe' | Should -Be '….exe'
     }
 }

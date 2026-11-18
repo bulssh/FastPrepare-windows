@@ -40,6 +40,9 @@ function Invoke-ExternalProcess {
         [switch]$Interactive,
         # Sens des codes propres à l'outil (clé : code entier), prioritaire sur les codes MSI connus.
         [hashtable]$ExitCodeMessage = @{},
+        # Nom affiché à la place du chemin et des arguments (journal, erreurs) : ligne de commande
+        # qui peut porter un secret, comme un jeton d'enrôlement (audit SEC-003).
+        [string]$DisplayName,
         $Log
     )
 
@@ -59,12 +62,14 @@ function Invoke-ExternalProcess {
         }
     }
 
-    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message ('Commande : "{0}" {1}' -f $FilePath, $ArgumentList) }
+    $name = if ($DisplayName) { $DisplayName } else { [System.IO.Path]::GetFileName($FilePath) }
+    $commandText = if ($DisplayName) { '{0} (ligne de commande masquée)' -f $DisplayName } else { '"{0}" {1}' -f $FilePath, $ArgumentList }
+    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message ('Commande : {0}' -f $commandText) }
     $started = Get-Date
     try {
         $process = [System.Diagnostics.Process]::Start($startInfo)
     } catch {
-        throw ('Lancement impossible de « {0} » : {1}' -f $FilePath, $_.Exception.Message)
+        throw ('Lancement impossible de « {0} » : {1}' -f $(if ($DisplayName) { $DisplayName } else { $FilePath }), $_.Exception.Message)
     }
 
     try {
@@ -75,7 +80,6 @@ function Invoke-ExternalProcess {
             $outputTask = $process.StandardOutput.ReadToEndAsync()
             $errorTask = $process.StandardError.ReadToEndAsync()
         }
-        $name = [System.IO.Path]::GetFileName($FilePath)
         if (-not $process.WaitForExit([int][Math]::Min([int]::MaxValue, $TimeoutMinutes * 60000))) {
             if ($OnTimeout -eq 'Kill') {
                 Stop-ProcessTree -Id $process.Id
@@ -103,13 +107,13 @@ function Invoke-ExternalProcess {
     }
 
     $duration = (Get-Date) - $started
-    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message ('Code de sortie {0} en {1:N0} s : {2}' -f $exitCode, $duration.TotalSeconds, [System.IO.Path]::GetFileName($FilePath)) }
+    if ($Log) { Write-RunLog -Log $Log -Level DEBUG -Message ('Code de sortie {0} en {1:N0} s : {2}' -f $exitCode, $duration.TotalSeconds, $name) }
 
     $reboot = $RebootExitCode -contains $exitCode
     if (-not $reboot -and $SuccessExitCode -notcontains $exitCode) {
         $meaning = if ($ExitCodeMessage.ContainsKey($exitCode)) { $ExitCodeMessage[$exitCode] } else { $script:KnownExitCodes[$exitCode] }
         $detail = if ($meaning) { " ($meaning)" } else { '' }
-        throw ('« {0} » : code de sortie {1}{2}' -f [System.IO.Path]::GetFileName($FilePath), $exitCode, $detail)
+        throw ('« {0} » : code de sortie {1}{2}' -f $name, $exitCode, $detail)
     }
     return [pscustomobject]@{ ExitCode = $exitCode; RebootRequired = $reboot; Duration = $duration; Output = $output }
 }
@@ -127,22 +131,6 @@ function Stop-ProcessTree {
     $info.CreateNoWindow = $true
     $killer = [System.Diagnostics.Process]::Start($info)
     try { [void]$killer.WaitForExit(60000) } finally { $killer.Dispose() }
-}
-
-function Invoke-CmdLine {
-    <#
-        Repli pour une ligne de commande que Split-CommandLine ne sait pas découper (désinstalleurs
-        aux chaînes atypiques) : cmd.exe /c, journalisé en ATTN. Jamais Invoke-Expression (DEC8).
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$CommandLine,
-        [switch]$Interactive,
-        [int]$TimeoutMinutes = 60,
-        $Log
-    )
-    if ($Log) { Write-RunLog -Log $Log -Level ATTN -Message "Commande non analysable, exécutée par cmd.exe /c : $CommandLine" }
-    return (Invoke-ExternalProcess -FilePath (Get-SystemExecutablePath -Name 'cmd.exe') -ArgumentList ('/d /c "{0}"' -f $CommandLine) -Interactive:$Interactive -TimeoutMinutes $TimeoutMinutes -Log $Log)
 }
 
 function Get-SystemExecutablePath {

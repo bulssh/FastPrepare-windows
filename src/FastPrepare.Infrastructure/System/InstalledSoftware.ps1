@@ -88,8 +88,9 @@ function Uninstall-MsiProduct {
 function Invoke-UninstallCommand {
     <#
         Exécute la commande de désinstallation choisie par Resolve-UninstallStrategy (FastPrepare.Core).
-        msiexec est toujours pris dans System32 ; une commande non analysable passe par cmd.exe /c
-        (tracé, décision DEC8). -Interactive : l'assistant de l'application est affiché et attendu.
+        msiexec est toujours pris dans System32 ; une commande non analysable n'est pas lancée
+        (erreur : à faire à la main ; audit SEC-001, DEC36). -Interactive : l'assistant de
+        l'application est affiché et attendu.
         Renvoie { RebootRequired }.
     #>
     [CmdletBinding()]
@@ -102,8 +103,8 @@ function Invoke-UninstallCommand {
     try {
         $parsed = Split-CommandLine -CommandLine $Command
     } catch {
-        $result = Invoke-CmdLine -CommandLine $Command -Interactive:$Interactive -TimeoutMinutes $timeout -Log $Log
-        return [pscustomobject]@{ RebootRequired = $result.RebootRequired }
+        # Plus de repli cmd.exe /c (audit SEC-001) : une ligne illisible n'est jamais confiée à un shell administrateur.
+        throw ('commande de désinstallation non analysable, non lancée : à désinstaller à la main depuis Paramètres › Applications ({0})' -f $_.Exception.Message)
     }
 
     $filePath = $parsed.FilePath

@@ -9,6 +9,8 @@
         'Test-DefaultComputerName',
         'Resolve-LinkInstaller',
         'Format-LinkInstallerCommand',
+        'Format-SafeUrl',
+        'Format-SafeFileName',
         'New-NetworkDriveRequest',
         'Get-NetworkDriveError',
         'Get-NetworkDriveLabelKeyName',

@@ -44,6 +44,17 @@ Describe 'Invoke-ExternalProcess (commandes inoffensives)' {
     }
 }
 
+Describe 'Invoke-ExternalProcess : ligne de commande masquée (audit SEC-003)' {
+    It '-DisplayName : ni chemin ni arguments au journal ni dans l''erreur' {
+        $log = New-RunLog -Folder (Join-Path $TestDrive 'logs') -FallbackFolder (Join-Path $TestDrive 'r') -HostName 'PC' -Stamp 'm'
+        $message = try { [void](Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c exit 1603 & rem JETON-SECRET' -DisplayName 'agent.exe' -TimeoutMinutes 1 -Log $log); '' } catch { $_.Exception.Message }
+        $message | Should -Be '« agent.exe » : code de sortie 1603 (erreur fatale pendant l''installation)'
+        $text = Get-Content -LiteralPath $log.FilePath -Raw -Encoding UTF8
+        $text | Should -Match 'Commande : agent\.exe \(ligne de commande masquée\)'
+        $text | Should -Not -Match 'JETON-SECRET|cmd\.exe'
+    }
+}
+
 Describe 'Invoke-ExternalProcess : délai dépassé (DEC33, audit BUG-002)' {
     It 'par défaut : le processus et ses enfants sont arrêtés, puis erreur' {
         $message = try { [void](Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c ping -n 30 127.0.0.1 >nul' -TimeoutMinutes 0.03); '' } catch { $_.Exception.Message }
