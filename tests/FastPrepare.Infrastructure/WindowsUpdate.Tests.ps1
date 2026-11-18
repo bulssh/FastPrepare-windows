@@ -87,7 +87,8 @@ Describe 'Invoke-WindowsUpdatePass (fausse session)' {
         $session = New-FakeSession -Updates @((New-FakeUpdate 'Pas téléchargée' -Downloaded $false), (New-FakeUpdate 'En échec' -Code 4), (New-FakeUpdate 'OK avec erreurs' -Code 3))
         $result = Invoke-WindowsUpdatePass -Session $session
         @($result.Failed) | Should -Be @('Pas téléchargée', 'En échec')
-        $result.Installed | Should -Be 1
+        @($result.Partial) | Should -Be @('OK avec erreurs')     # « réussi avec erreurs » : pas comptée installée (audit BUG-013)
+        $result.Installed | Should -Be 0
     }
 
     It 'mises à jour encore disponibles après la passe : comptées (une seule passe, QO3)' {

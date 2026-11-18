@@ -44,6 +44,23 @@ Describe 'Invoke-ExternalProcess (commandes inoffensives)' {
     }
 }
 
+Describe 'Invoke-ExternalProcess : délai dépassé (DEC33, audit BUG-002)' {
+    It 'par défaut : le processus et ses enfants sont arrêtés, puis erreur' {
+        $message = try { [void](Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c ping -n 30 127.0.0.1 >nul' -TimeoutMinutes 0.03); '' } catch { $_.Exception.Message }
+        $found = $message -match 'dépasse le délai de .* min : arrêté avec ses processus enfants \(PID (\d+)\)'
+        $found | Should -BeTrue -Because $message
+        $processId = [int]$Matches[1]
+        Get-Process -Id $processId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        @(Get-CimInstance -ClassName Win32_Process -Filter "ParentProcessId=$processId" -ErrorAction SilentlyContinue).Count | Should -Be 0
+    }
+    It '-OnTimeout Wait : rien n''est arrêté, l''attente est journalisée et le code de sortie lu' {
+        $log = New-RunLog -Folder (Join-Path $TestDrive 'logs') -FallbackFolder (Join-Path $TestDrive 'r') -HostName 'PC' -Stamp 'w'
+        $result = Invoke-ExternalProcess -FilePath $cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & exit 0' -TimeoutMinutes 0.01 -OnTimeout Wait -Log $log
+        $result.ExitCode | Should -Be 0
+        ((Receive-RunLogEntry -Log $log) | Where-Object Level -EQ 'ATTN').Line -join "`n" | Should -Match 'pas d''arrêt.*attend sa fin'
+    }
+}
+
 Describe 'Get-SystemExecutablePath' {
     It 'chemin absolu dans System32' {
         Get-SystemExecutablePath -Name 'powercfg.exe' | Should -Be (Join-Path ([Environment]::GetFolderPath('System')) 'powercfg.exe')

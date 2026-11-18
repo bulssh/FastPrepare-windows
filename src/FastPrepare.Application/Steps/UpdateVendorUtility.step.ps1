@@ -19,8 +19,10 @@ Register-Step -Id 'update-vendor-utility' -Section 7 -Title 'Mise à jour par l'
         foreach ($entry in $update.ExitCodeMessages.PSObject.Properties) { $messages[[int]$entry.Name] = [string]$entry.Value }
     }
     # Pilotes et BIOS : peut être long ; jamais de redémarrage automatique (arguments de config.json).
+    # Jamais arrêté au délai (DEC33) : une mise à jour du BIOS interrompue peut rendre le poste
+    # inutilisable ; l'exécution attend sa fin.
     $result = Invoke-ExternalProcess -FilePath $path -ArgumentList ([string]$update.Arguments) -SuccessExitCode ([int[]]@($update.SuccessExitCodes)) -RebootExitCode $rebootCodes `
-        -ExitCodeMessage $messages -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 180 -Log $Context.Log
+        -ExitCodeMessage $messages -WorkingDirectory (Split-Path -Path $path -Parent) -TimeoutMinutes 180 -OnTimeout Wait -Log $Context.Log
     # Outil qui ne fait que lancer la mise à jour (Lenovo SU Helper) : rappel écrit au journal (Update.Notice).
     if ($update.PSObject.Properties['Notice'] -and $update.Notice) { Write-RunLog -Log $Context.Log -Level ATTN -Message ([string]$update.Notice) }
     [pscustomobject]@{ RebootRequired = $result.RebootRequired }

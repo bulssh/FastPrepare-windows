@@ -70,6 +70,7 @@
         'Remove-AppxEverywhere',
         'Initialize-OdtFolder',
         'Invoke-Odt',
+        'Get-RunningOfficeApp',
         'Get-OneDriveSetupPath',
         'Uninstall-OneDrive',
         'Get-OneDriveClientState',

@@ -42,7 +42,7 @@ Describe 'New-ExecutionPlan' {
         $plan = New-ExecutionPlan -Selection (New-FullSelection) -Snapshot (New-TestSnapshot) -Context $context
         $byStep = $plan.Actions | Group-Object StepId -AsHashTable
         $byStep['remove-local-accounts'].Count | Should -Be 1
-        $byStep['remove-microsoft-apps'].Count | Should -Be 8     # ODT + MSI confié à l'installation + nouvel Outlook + OneNote + 4 Teams
+        $byStep['remove-microsoft-apps'].Count | Should -Be 7     # ODT (MSI retiré par l'installation) + nouvel Outlook + OneNote + 4 Teams
         $byStep['remove-onedrive'].Count | Should -Be 3
         $byStep['uninstall-software'].Count | Should -Be 2
         $byStep['install-vendor-utility'].Count | Should -Be 2    # .NET + DCU

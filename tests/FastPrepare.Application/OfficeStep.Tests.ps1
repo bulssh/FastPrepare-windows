@@ -51,6 +51,20 @@ Describe 'Étape 7 en mode réel — Office via ODT' {
         $results[0].Error | Should -Match 'O365BusinessRetail absent.*aucun'
     }
 
+    It 'retrait MSI confié à l''installation, MSI encore inscrit : action en échec, redémarrage gardé (audit BUG-023)' {
+        Mock @m Get-OfficeClickToRunProduct { @('O365BusinessRetail') }
+        Mock @m Get-InstalledOfficeKind { [pscustomobject]@{ ClickToRun = $true; Msi = $true } }
+        $context = New-TestContext -Folder $TestDrive -Mode Real
+        $selection = New-Selection
+        $selection.MicrosoftApps.OfficeMsi = $true
+        $selection.Office.EditionKey = 'O365'
+        $results = @(Invoke-ExecutionPlan -Plan (New-ExecutionPlan -Selection $selection -Snapshot (New-TestSnapshot) -Context $context) -Context $context)
+        $results.Count | Should -Be 1
+        $results[0].Outcome | Should -Be 'Failed'
+        $results[0].Error | Should -Match 'O365BusinessRetail installé, mais Office MSI encore inscrit'
+        $results[0].RebootRequired | Should -BeTrue
+    }
+
     It 'XML recopié dans le journal (traçabilité de ce qui a été installé)' {
         Mock @m Get-OfficeClickToRunProduct { @('O365BusinessRetail') }
         $context = New-TestContext -Folder $TestDrive -Mode Real

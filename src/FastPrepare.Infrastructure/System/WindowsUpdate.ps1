@@ -15,7 +15,7 @@ function Invoke-WindowsUpdatePass {
         Aucune mise à jour n'est écartée d'office : constaté sur poste réel, les pilotes se déclarent
         souvent « peut demander une saisie » (CanRequestUserInput) alors qu'ils s'installent sans
         intervention ; une mise à jour qui exigerait vraiment une saisie échoue et est signalée.
-        Renvoie { Found, Installed, Failed (titres), RebootRequired, Remaining }.
+        Renvoie { Found, Installed, Partial (titres « réussi avec erreurs »), Failed (titres), RebootRequired, Remaining }.
         Remaining : mises à jour encore disponibles après la passe (une seule passe, question QO3).
     #>
     [CmdletBinding()]
@@ -27,7 +27,7 @@ function Invoke-WindowsUpdatePass {
     if (-not $Session) { $Session = New-Object -ComObject 'Microsoft.Update.Session' }
     $Session.ClientApplicationID = 'FastPrepare'
 
-    $result = [pscustomobject]@{ Found = 0; Installed = 0; Failed = @(); RebootRequired = $false; Remaining = 0 }
+    $result = [pscustomobject]@{ Found = 0; Installed = 0; Partial = @(); Failed = @(); RebootRequired = $false; Remaining = 0 }
 
     Write-WuLog -Log $Log -Message 'Windows Update : recherche des mises à jour…'
     $updates = @(Get-WuUpdate -Session $Session -Criteria $Criteria)
@@ -70,9 +70,13 @@ function Invoke-WindowsUpdatePass {
         foreach ($update in $downloaded) {
             $code = [int]$installation.GetUpdateResult($index).ResultCode
             $meaning = $script:WuResultCodes[$code]
-            if ($code -eq 2 -or $code -eq 3) {
+            if ($code -eq 2) {
                 $result.Installed++
                 Write-WuLog -Log $Log -Level OK -Message ('Windows Update : {0} ({1})' -f $update.Title, $meaning)
+            } elseif ($code -eq 3) {
+                # « Réussi avec erreurs » : installée en partie, jamais comptée comme réussie (audit BUG-013).
+                $result.Partial += [string]$update.Title
+                Write-WuLog -Log $Log -Level ATTN -Message ('Windows Update : {0} — {1}' -f $update.Title, $meaning)
             } else {
                 $result.Failed += [string]$update.Title
                 Write-WuLog -Log $Log -Level ERREUR -Message ('Windows Update : {0} — {1}' -f $update.Title, $meaning)

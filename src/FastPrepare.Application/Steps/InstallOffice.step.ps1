@@ -17,7 +17,10 @@ Register-Step -Id 'install-office' -Section 6 -Title 'Installation d''Office' -P
     $removeMsi = [bool]$Selection.MicrosoftApps.OfficeMsi
     $xml = New-OdtInstallXml -ProductId $productId -Channel $edition.Channel -ExcludedApp $excluded -Architecture $office.Architecture -Language $office.Language -RemoveMsi:$removeMsi
 
-    New-StepAction -Label ('Office : {0} via ODT dans {1} (ID produit {2}), configuration.xml :' -f $edition.Name, $office.OdtFolder, $productId) -Details ($xml -split "`r`n") -Parameters @{
+    $label = 'Office : {0} via ODT dans {1} (ID produit {2})' -f $edition.Name, $office.OdtFolder, $productId
+    if ($removeMsi) { $label += ' · retire aussi Office MSI 2010-2016 (RemoveMSI)' }
+    $label += ' · applications Office ouvertes fermées sans enregistrer, configuration.xml :'
+    New-StepAction -Label $label -Details ($xml -split "`r`n") -Parameters @{
         Kind = 'OdtInstall'; Xml = $xml; EditionKey = $key; ProductId = $productId; RemoveMsi = $removeMsi
     }
 } -Invoke {
@@ -35,8 +38,10 @@ Register-Step -Id 'install-office' -Section 6 -Title 'Installation d''Office' -P
     }
     Write-RunLog -Log $log -Message ('Office {0} installé ; activation à faire à la main' -f $p.ProductId)
     if ($p.RemoveMsi -and (Get-InstalledOfficeKind).Msi) {
-        # Microsoft : le retrait MSI se termine au redémarrage, qui n'est pas imposé.
-        Write-RunLog -Log $log -Level ATTN -Message 'Office MSI encore inscrit sur le poste : son retrait se termine au redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications'
+        # Retrait MSI demandé mais non constaté : l'action n'est pas réussie (audit BUG-023).
+        $message = ('Office {0} installé, mais Office MSI encore inscrit sur le poste : ' +
+            'vérifier après le redémarrage final ; sinon, le désinstaller depuis Paramètres › Applications') -f $p.ProductId
+        throw (New-StepFailure -RebootRequired -Message $message)
     }
     [pscustomobject]@{ RebootRequired = $result.RebootRequired }
 }
